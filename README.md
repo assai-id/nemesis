@@ -1,5 +1,5 @@
 # Nemesis
-
+assai.id/nemesis
 > End the vampire ball.
 
 Mohon bersabar, file-file sedang dalam proses finalisasi.
@@ -37,3 +37,6 @@ The backend expects the database at `backend/data/dashboard.sqlite`.
 ### 2. Run the Application
 
 > ⚠️ Note: This is a time-limited SAS URL that expires on 16 April 2026 at 20:15 UTC. Request a refreshed link if access has lapsed.
+
+
+
