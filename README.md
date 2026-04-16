@@ -6,7 +6,6 @@ https://assai.id/nemesis
 
 > End the vampire ball.
 
-Mohon bersabar, file-file sedang dalam proses finalisasi.
 
 ## Release Status
 
