@@ -6,7 +6,7 @@
 <title>Audit Pengadaan Kab/Kota - LKPP 2026</title>
 <link rel="icon" href="data:,"/>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css"/>
-<link rel="stylesheet" href="assets/css/styles.css"/>
+<link rel="stylesheet" href="assets/css/styles.css?v=2"/>
 <script defer src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 <script defer src="assets/js/map.js"></script>
 <script defer src="assets/js/app.js"></script>
@@ -14,16 +14,21 @@
 <body>
 <div class="hdr">
 <div class="hdr-l"><div class="logo">AUD</div><div class="hdr-t"><h1>Audit Pengadaan per Kab/Kota</h1><span>Artifact hasil analyze &middot; LKPP / SiRUP &middot; Tahun Anggaran 2026</span></div></div>
-<div class="hdr-r"><div class="ll"><span class="ldot"></span> LIVE</div><div class="yr">TA 2026</div></div>
+<div class="hdr-r"><div class="ll"><span class="ldot"></span> LIVE</div><div class="yr">TA 2026</div><button class="mobile-kpi-btn" onclick="document.getElementById('kpi').classList.toggle('open')">📊 KPI</button></div>
 </div>
+<div class="kpi-backdrop" onclick="document.getElementById('kpi').classList.remove('open')"></div>
 <div class="kpi" id="kpi"></div>
 <div class="ml">
 <div class="mc">
 <div id="map"></div>
 <div class="moc" id="mf"></div>
-<div class="mlb" id="legend"></div>
+<div class="mlb" id="legend-container">
+<button class="legend-btn" onclick="document.getElementById('legend-container').classList.toggle('open')">ℹ️ Legenda</button>
+<div class="legend-content" id="legend"></div>
 </div>
-<div class="sb">
+</div>
+<div class="sb" id="sidebar">
+<div class="sb-handle" onclick="document.getElementById('sidebar').classList.toggle('expanded')"></div>
 <div class="sbh"><div class="sbt" id="tabs"></div></div>
 <div class="sbc" id="sbc"></div>
 </div>
