@@ -79,6 +79,16 @@ const app = createApp(db);
 const server = app.listen(PORT, () => {
   console.log(`Dashboard backend listening on http://127.0.0.1:${PORT}`);
   console.log(`SQLite database: ${runtimeDbPath}`);
+
+  app.locals.bootstrapResponseCache
+    .prime()
+    .then(() => {
+      console.log("Precomputed cached /api/bootstrap response.");
+    })
+    .catch((error) => {
+      console.error("Failed to precompute cached /api/bootstrap response.");
+      console.error(error);
+    });
 });
 
 function shutdown(signal) {
