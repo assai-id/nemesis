@@ -1,5 +1,7 @@
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
+const { createBootstrapResponseCache } = require("./bootstrap-response-cache");
 const { CORS_ORIGIN } = require("./config");
 const { getBootstrapPayload, getOwnerPackages, getRegionPackages, getProvincePackages } = require("./dashboard-repository");
 
@@ -15,6 +17,16 @@ function resolveCorsOrigin() {
 
 function createApp(db) {
   const app = express();
+  const bootstrapResponseCache = createBootstrapResponseCache(db, getBootstrapPayload);
+
+  app.locals.bootstrapResponseCache = bootstrapResponseCache;
+
+  app.use(
+    compression({
+      brotli: { enabled: true, zlib: {} },
+      threshold: 1024,
+    })
+  );
 
   app.use(
     cors({
@@ -27,8 +39,12 @@ function createApp(db) {
     res.json({ status: "ok" });
   });
 
-  app.get("/api/bootstrap", (_req, res) => {
-    res.json(getBootstrapPayload(db));
+  app.get("/api/bootstrap", async (req, res, next) => {
+    try {
+      await bootstrapResponseCache.send(req, res);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get("/api/regions/:regionKey/packages", (req, res) => {
