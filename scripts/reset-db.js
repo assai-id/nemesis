@@ -1,6 +1,6 @@
-const { AUDIT_DATASET_DIR, GEO_ROOT_PATH } = require("../src/config");
-const { openDatabase, resolveRuntimeDbPath } = require("../src/db");
-const { createSchema, seedDatabase } = require("../src/seed");
+import {  AUDIT_DATASET_DIR, GEO_ROOT_PATH  } from "../src/backend/config.js";
+import {  openDatabase, resolveRuntimeDbPath  } from "../src/backend/db.js";
+import {  createSchema, seedDatabase  } from "../src/backend/seed.js";
 
 const runtimeDbPath = resolveRuntimeDbPath();
 const db = openDatabase();

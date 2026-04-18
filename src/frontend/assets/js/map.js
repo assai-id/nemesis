@@ -1,9 +1,9 @@
-window.AuditMap = (() => {
-  const SOURCE = "audit-areas";
-  const FILL_LAYER = "audit-fill";
-  const LINE_LAYER = "audit-line";
-  const HOVER_FILL = "audit-fill-hover";
-  const HOVER_LINE = "audit-line-hover";
+window['AuditMap'] = (() => {
+  const SOURCE = 'audit-areas';
+  const FILL_LAYER = 'audit-fill';
+  const LINE_LAYER = 'audit-line';
+  const HOVER_FILL = 'audit-fill-hover';
+  const HOVER_LINE = 'audit-line-hover';
 
   let map = null;
   let popup = null;
@@ -18,9 +18,9 @@ window.AuditMap = (() => {
 
   function buildStyledGeo(geo, getFeatureStyle) {
     return {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features: geo.features.map((f) => ({
-        type: "Feature",
+        type: 'Feature',
         geometry: f.geometry,
         properties: { ...f.properties, ...getFeatureStyle(f) },
       })),
@@ -29,19 +29,22 @@ window.AuditMap = (() => {
 
   function walkCoords(geometry, fn) {
     const c = geometry.coordinates;
-    if (geometry.type === "Point") {
+    if (geometry.type === 'Point') {
       fn(c[0], c[1]);
-    } else if (geometry.type === "LineString" || geometry.type === "MultiPoint") {
+    } else if (geometry.type === 'LineString' || geometry.type === 'MultiPoint') {
       c.forEach((p) => fn(p[0], p[1]));
-    } else if (geometry.type === "Polygon" || geometry.type === "MultiLineString") {
+    } else if (geometry.type === 'Polygon' || geometry.type === 'MultiLineString') {
       c.forEach((ring) => ring.forEach((p) => fn(p[0], p[1])));
-    } else if (geometry.type === "MultiPolygon") {
+    } else if (geometry.type === 'MultiPolygon') {
       c.forEach((poly) => poly.forEach((ring) => ring.forEach((p) => fn(p[0], p[1]))));
     }
   }
 
   function computeBounds(geo) {
-    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    let minLng = Infinity,
+      minLat = Infinity,
+      maxLng = -Infinity,
+      maxLat = -Infinity;
     let hasCoords = false;
     geo.features.forEach((f) => {
       if (!f.geometry) return;
@@ -53,18 +56,23 @@ window.AuditMap = (() => {
         if (lat > maxLat) maxLat = lat;
       });
     });
-    return hasCoords ? [[minLng, minLat], [maxLng, maxLat]] : null;
+    return hasCoords
+      ? [
+          [minLng, minLat],
+          [maxLng, maxLat],
+        ]
+      : null;
   }
 
   function ensureMap(container) {
     if (map) return;
-    map = new maplibregl.Map({
+    map = new window['maplibregl'].Map({
       container,
       center: [118, -2.5],
       zoom: 5,
       minZoom: 4,
       maxZoom: 12,
-      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     });
   }
 
@@ -80,7 +88,7 @@ window.AuditMap = (() => {
       try {
         map.setFeatureState({ source: SOURCE, id: hoveredId }, { hover: false });
       } catch (e) {
-        console.warn("Failed to clear hover state:", e);
+        console.warn('Failed to clear hover state:', e);
       }
       hoveredId = null;
     }
@@ -89,43 +97,43 @@ window.AuditMap = (() => {
 
   function addLayers() {
     map.addSource(SOURCE, {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
       generateId: true,
     });
 
     map.addLayer({
       id: FILL_LAYER,
-      type: "fill",
+      type: 'fill',
       source: SOURCE,
       paint: {
-        "fill-color": ["coalesce", ["get", "fillColor"], "#243155"],
-        "fill-opacity": ["coalesce", ["get", "fillOpacity"], 0.08],
+        'fill-color': ['coalesce', ['get', 'fillColor'], '#243155'],
+        'fill-opacity': ['coalesce', ['get', 'fillOpacity'], 0.08],
       },
     });
 
     map.addLayer({
       id: LINE_LAYER,
-      type: "line",
+      type: 'line',
       source: SOURCE,
       paint: {
-        "line-color": ["coalesce", ["get", "strokeColor"], "#b5a882"],
-        "line-width": ["coalesce", ["get", "strokeWidth"], 0.8],
-        "line-opacity": ["coalesce", ["get", "strokeOpacity"], 0.17],
+        'line-color': ['coalesce', ['get', 'strokeColor'], '#b5a882'],
+        'line-width': ['coalesce', ['get', 'strokeWidth'], 0.8],
+        'line-opacity': ['coalesce', ['get', 'strokeOpacity'], 0.17],
       },
     });
 
     // Hover highlight layers driven by feature-state
     map.addLayer({
       id: HOVER_FILL,
-      type: "fill",
+      type: 'fill',
       source: SOURCE,
       paint: {
-        "fill-color": ["coalesce", ["get", "fillColor"], "#243155"],
-        "fill-opacity": [
-          "case",
-          ["boolean", ["feature-state", "hover"], false],
-          ["min", ["+", ["coalesce", ["get", "fillOpacity"], 0.08], 0.16], 0.85],
+        'fill-color': ['coalesce', ['get', 'fillColor'], '#243155'],
+        'fill-opacity': [
+          'case',
+          ['boolean', ['feature-state', 'hover'], false],
+          ['min', ['+', ['coalesce', ['get', 'fillOpacity'], 0.08], 0.16], 0.85],
           0,
         ],
       },
@@ -133,24 +141,19 @@ window.AuditMap = (() => {
 
     map.addLayer({
       id: HOVER_LINE,
-      type: "line",
+      type: 'line',
       source: SOURCE,
       paint: {
-        "line-color": "#f0d8a8",
-        "line-width": 1.8,
-        "line-opacity": [
-          "case",
-          ["boolean", ["feature-state", "hover"], false],
-          1,
-          0,
-        ],
+        'line-color': '#f0d8a8',
+        'line-width': 1.8,
+        'line-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0],
       },
     });
 
-    map.on("mousemove", FILL_LAYER, (e) => {
+    map.on('mousemove', FILL_LAYER, (e) => {
       if (!e.features.length) return;
 
-      map.getCanvas().style.cursor = "pointer";
+      map.getCanvas().style.cursor = 'pointer';
       const feature = e.features[0];
       const id = feature.id;
 
@@ -165,11 +168,11 @@ window.AuditMap = (() => {
         const html = _getPopupHtml(areaKey);
         if (html) {
           if (!popup) {
-            popup = new maplibregl.Popup({
+            popup = new window['maplibregl'].Popup({
               closeButton: false,
               closeOnClick: false,
-              maxWidth: "320px",
-              className: "audit-popup",
+              maxWidth: '320px',
+              className: 'audit-popup',
               offset: 12,
             });
           }
@@ -178,12 +181,12 @@ window.AuditMap = (() => {
       }
     });
 
-    map.on("mouseleave", FILL_LAYER, () => {
-      map.getCanvas().style.cursor = "";
+    map.on('mouseleave', FILL_LAYER, () => {
+      map.getCanvas().style.cursor = '';
       clearHover();
     });
 
-    map.on("click", FILL_LAYER, (e) => {
+    map.on('click', FILL_LAYER, (e) => {
       if (!e.features.length) return;
       const areaKey = getFeatureAreaKey(e.features[0].properties);
       if (_onAreaClick) _onAreaClick(areaKey);
@@ -223,7 +226,7 @@ window.AuditMap = (() => {
     if (map.isStyleLoaded()) {
       apply();
     } else {
-      map.once("load", apply);
+      map.once('load', apply);
     }
   }
 
@@ -235,3 +238,5 @@ window.AuditMap = (() => {
 
   return { render, refresh, closePopup: clearHover };
 })();
+
+export {};

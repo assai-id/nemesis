@@ -1,21 +1,21 @@
-const fs = require("fs");
-const path = require("path");
-const readline = require("readline");
-const Database = require("better-sqlite3");
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import Database from 'better-sqlite3';
 
-const SQLITE_FILE_EXTENSIONS = new Set([".sqlite", ".sqlite3", ".db"]);
-const SQL_DUMP_EXTENSIONS = new Set([".sql"]);
+const SQLITE_FILE_EXTENSIONS = new Set(['.sqlite', '.sqlite3', '.db']);
+const SQL_DUMP_EXTENSIONS = new Set(['.sql']);
 const SQL_IMPORT_BATCH_BYTES = 1024 * 1024;
 
 function getTransferFileFormat(filePath) {
   const extension = path.extname(filePath).toLowerCase();
 
   if (SQLITE_FILE_EXTENSIONS.has(extension)) {
-    return "sqlite";
+    return 'sqlite';
   }
 
   if (SQL_DUMP_EXTENSIONS.has(extension)) {
-    return "sql";
+    return 'sql';
   }
 
   return null;
@@ -26,52 +26,52 @@ function isImportableDatabaseFile(filePath) {
 }
 
 function isSqliteTransferFile(filePath) {
-  return getTransferFileFormat(filePath) === "sqlite";
+  return getTransferFileFormat(filePath) === 'sqlite';
 }
 
 function normalizeSqlStatement(sql) {
-  return String(sql).replace(/\r?\n/g, " ").trim();
+  return String(sql).replace(/\r?\n/g, ' ').trim();
 }
 
 function escapeIdentifier(identifier) {
-  return `"${String(identifier).replace(/"/g, "\"\"")}"`;
+  return `"${String(identifier).replace(/"/g, '""')}"`;
 }
 
 function toBlobLiteral(buffer) {
-  return `X'${buffer.toString("hex").toUpperCase()}'`;
+  return `X'${buffer.toString('hex').toUpperCase()}'`;
 }
 
 function toTextExpression(value) {
-  return `CAST(${toBlobLiteral(Buffer.from(value, "utf8"))} AS TEXT)`;
+  return `CAST(${toBlobLiteral(Buffer.from(value, 'utf8'))} AS TEXT)`;
 }
 
 function toSqlLiteral(value) {
   if (value === null) {
-    return "NULL";
+    return 'NULL';
   }
 
   if (Buffer.isBuffer(value)) {
     return toBlobLiteral(value);
   }
 
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     return toTextExpression(value);
   }
 
-  if (typeof value === "number") {
+  if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
       throw new Error(`Cannot export non-finite numeric value "${value}".`);
     }
 
-    return Object.is(value, -0) ? "-0" : String(value);
+    return Object.is(value, -0) ? '-0' : String(value);
   }
 
-  if (typeof value === "bigint") {
+  if (typeof value === 'bigint') {
     return value.toString();
   }
 
-  if (typeof value === "boolean") {
-    return value ? "1" : "0";
+  if (typeof value === 'boolean') {
+    return value ? '1' : '0';
   }
 
   throw new Error(`Unsupported SQLite value type "${typeof value}" in SQL dump export.`);
@@ -84,7 +84,7 @@ function tableExists(db, tableName) {
 }
 
 function removeSqliteArtifacts(filePath) {
-  ["", "-shm", "-wal"].forEach((suffix) => {
+  ['', '-shm', '-wal'].forEach((suffix) => {
     fs.rmSync(`${filePath}${suffix}`, { force: true });
   });
 }
@@ -92,8 +92,8 @@ function removeSqliteArtifacts(filePath) {
 function waitForDrain(stream) {
   return new Promise((resolve, reject) => {
     function cleanup() {
-      stream.off("drain", handleDrain);
-      stream.off("error", handleError);
+      stream.off('drain', handleDrain);
+      stream.off('error', handleError);
     }
 
     function handleDrain() {
@@ -106,13 +106,13 @@ function waitForDrain(stream) {
       reject(error);
     }
 
-    stream.once("drain", handleDrain);
-    stream.once("error", handleError);
+    stream.once('drain', handleDrain);
+    stream.once('error', handleError);
   });
 }
 
 async function writeLine(stream, line) {
-  if (!stream.write(`${line}\n`, "utf8")) {
+  if (!stream.write(`${line}\n`, 'utf8')) {
     await waitForDrain(stream);
   }
 }
@@ -120,8 +120,8 @@ async function writeLine(stream, line) {
 function closeStream(stream) {
   return new Promise((resolve, reject) => {
     function cleanup() {
-      stream.off("finish", handleFinish);
-      stream.off("error", handleError);
+      stream.off('finish', handleFinish);
+      stream.off('error', handleError);
     }
 
     function handleFinish() {
@@ -134,8 +134,8 @@ function closeStream(stream) {
       reject(error);
     }
 
-    stream.once("finish", handleFinish);
-    stream.once("error", handleError);
+    stream.once('finish', handleFinish);
+    stream.once('error', handleError);
     stream.end();
   });
 }
@@ -171,13 +171,13 @@ async function exportTableData(db, tableName, outputStream) {
   const selectStatement = db.prepare(`SELECT * FROM ${escapeIdentifier(tableName)}`).raw();
 
   for (const row of selectStatement.iterate()) {
-    const values = row.map((value) => toSqlLiteral(value)).join(", ");
+    const values = row.map((value) => toSqlLiteral(value)).join(', ');
     await writeLine(outputStream, `INSERT INTO ${escapeIdentifier(tableName)} VALUES(${values});`);
   }
 }
 
 async function exportSqliteSequence(db, outputStream) {
-  if (!tableExists(db, "sqlite_sequence")) {
+  if (!tableExists(db, 'sqlite_sequence')) {
     return;
   }
 
@@ -190,7 +190,7 @@ async function exportSqliteSequence(db, outputStream) {
   await writeLine(outputStream, `DELETE FROM "sqlite_sequence";`);
 
   for (const row of rows) {
-    const values = row.map((value) => toSqlLiteral(value)).join(", ");
+    const values = row.map((value) => toSqlLiteral(value)).join(', ');
     await writeLine(outputStream, `INSERT INTO "sqlite_sequence" VALUES(${values});`);
   }
 }
@@ -200,14 +200,14 @@ async function exportDatabaseAsSql(sourcePath, outputPath) {
   db.defaultSafeIntegers(true);
 
   const schemaObjects = listSchemaObjects(db);
-  const tables = schemaObjects.filter((entry) => entry.type === "table");
-  const otherObjects = schemaObjects.filter((entry) => entry.type !== "table");
-  const outputStream = fs.createWriteStream(outputPath, { encoding: "utf8" });
+  const tables = schemaObjects.filter((entry) => entry.type === 'table');
+  const otherObjects = schemaObjects.filter((entry) => entry.type !== 'table');
+  const outputStream = fs.createWriteStream(outputPath, { encoding: 'utf8' });
 
   try {
-    await writeLine(outputStream, "-- indoaudit SQL text dump");
-    await writeLine(outputStream, "PRAGMA foreign_keys=OFF;");
-    await writeLine(outputStream, "BEGIN TRANSACTION;");
+    await writeLine(outputStream, '-- indoaudit SQL text dump');
+    await writeLine(outputStream, 'PRAGMA foreign_keys=OFF;');
+    await writeLine(outputStream, 'BEGIN TRANSACTION;');
 
     for (const table of tables) {
       await writeLine(outputStream, `${normalizeSqlStatement(table.sql)};`);
@@ -220,7 +220,7 @@ async function exportDatabaseAsSql(sourcePath, outputPath) {
       await writeLine(outputStream, `${normalizeSqlStatement(entry.sql)};`);
     }
 
-    await writeLine(outputStream, "COMMIT;");
+    await writeLine(outputStream, 'COMMIT;');
     await closeStream(outputStream);
   } catch (error) {
     outputStream.destroy(error);
@@ -246,13 +246,13 @@ async function importSqlDump(sourcePath, targetPath) {
       return;
     }
 
-    db.exec(statements.join("\n"));
+    db.exec(statements.join('\n'));
     statements = [];
     bufferedBytes = 0;
   }
 
   try {
-    const inputStream = fs.createReadStream(sourcePath, { encoding: "utf8" });
+    const inputStream = fs.createReadStream(sourcePath, { encoding: 'utf8' });
     const input = readline.createInterface({
       input: inputStream,
       crlfDelay: Infinity,
@@ -262,17 +262,17 @@ async function importSqlDump(sourcePath, targetPath) {
       lineNumber += 1;
 
       if (lineNumber === 1) {
-        line = line.replace(/^\uFEFF/, "");
+        line = line.replace(/^\uFEFF/, '');
       }
 
       const trimmed = line.trim();
 
-      if (!trimmed || trimmed.startsWith("--")) {
+      if (!trimmed || trimmed.startsWith('--')) {
         continue;
       }
 
       statements.push(line);
-      bufferedBytes += Buffer.byteLength(line, "utf8") + 1;
+      bufferedBytes += Buffer.byteLength(line, 'utf8') + 1;
 
       if (bufferedBytes >= SQL_IMPORT_BATCH_BYTES) {
         flushStatements();
@@ -301,7 +301,7 @@ async function importSqlDump(sourcePath, targetPath) {
   }
 }
 
-module.exports = {
+export {
   exportDatabaseAsSql,
   getTransferFileFormat,
   importSqlDump,

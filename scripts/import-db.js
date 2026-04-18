@@ -1,8 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const Database = require("better-sqlite3");
-const { DB_PATH } = require("../src/config");
-const { getTransferFileFormat, importSqlDump, isImportableDatabaseFile } = require("../src/db-transfer");
+import fs from "fs";
+import path from "path";
+import Database from "better-sqlite3";
+import {  DB_PATH  } from "../src/backend/config.js";
+import {  getTransferFileFormat, importSqlDump, isImportableDatabaseFile  } from "../src/backend/db-transfer.js";
 
 function findLatestExportInDefaultFolder() {
   const exportDir = path.join(path.dirname(DB_PATH), "exports");

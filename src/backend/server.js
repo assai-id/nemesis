@@ -1,10 +1,15 @@
-const fs = require("fs");
-const path = require("path");
-const { DATA_DIR, DB_PATH, PORT } = require("./config");
-const { hasApplicationSchema, listExistingSqliteFiles, openDatabase, resolveRuntimeDbPath } = require("./db");
-const { isImportableDatabaseFile } = require("./db-transfer");
-const { ensureOwnerMetricsCompatibility, ensureRegionMetricsCompatibility } = require("./seed");
-const { createApp } = require("./app");
+import fs from 'fs';
+import path from 'path';
+import { DATA_DIR, DB_PATH, PORT } from './config.js';
+import {
+  hasApplicationSchema,
+  listExistingSqliteFiles,
+  openDatabase,
+  resolveRuntimeDbPath,
+} from './db.js';
+import { isImportableDatabaseFile } from './db-transfer.js';
+import { ensureOwnerMetricsCompatibility, ensureRegionMetricsCompatibility } from './seed.js';
+import { createApp } from './app.js';
 
 const runtimeDbPath = resolveRuntimeDbPath();
 const runtimeDbExisted = fs.existsSync(runtimeDbPath);
@@ -39,20 +44,24 @@ if (!hasSchema) {
     (filePath) => path.resolve(filePath) !== path.resolve(runtimeDbPath)
   );
   const usableSiblingDatabases = siblingDatabases.filter(hasApplicationSchema);
-  const exportDir = path.join(DATA_DIR, "exports");
+  const exportDir = path.join(DATA_DIR, 'exports');
   const exportCandidates = listTransferFiles(exportDir);
   const latestExport = findLatestSqliteFile(exportCandidates);
 
   console.error(`Audit dashboard schema was not found at ${runtimeDbPath}.`);
 
   if (!runtimeDbExisted && path.resolve(runtimeDbPath) === path.resolve(DB_PATH)) {
-    console.error(`Startup created an empty SQLite file at ${runtimeDbPath} because the configured DB was missing.`);
+    console.error(
+      `Startup created an empty SQLite file at ${runtimeDbPath} because the configured DB was missing.`
+    );
   }
 
   if (usableSiblingDatabases.length) {
     console.error(`Found other SQLite files with the expected schema in ${DATA_DIR}:`);
     usableSiblingDatabases.forEach((filePath) => console.error(`- ${filePath}`));
-    console.error(`Rename the desired file to ${path.basename(DB_PATH)} or set SQLITE_PATH to point to it.`);
+    console.error(
+      `Rename the desired file to ${path.basename(DB_PATH)} or set SQLITE_PATH to point to it.`
+    );
   }
 
   if (latestExport) {
@@ -60,20 +69,24 @@ if (!hasSchema) {
     console.error(`Import the latest export with: npm.cmd run db:import -- --in "${latestExport}"`);
   }
 
-  console.error(`Run "npm.cmd run db:reset" inside backend/ if you want to rebuild the database from seed data.`);
+  console.error(
+    `Run "npm.cmd run db:reset" inside backend/ if you want to rebuild the database from seed data.`
+  );
   db.close();
   process.exit(1);
 }
 
 if (ensureRegionMetricsCompatibility(db)) {
-  console.log("Region metrics schema was outdated. Rebuilt owner-scoped aggregates.");
+  console.log('Region metrics schema was outdated. Rebuilt owner-scoped aggregates.');
 }
 
 if (ensureOwnerMetricsCompatibility(db)) {
-  console.log("Owner metrics table was missing or outdated. Rebuilt national owner aggregates.");
+  console.log('Owner metrics table was missing or outdated. Rebuilt national owner aggregates.');
 }
 
-db.exec("CREATE INDEX IF NOT EXISTS idx_packages_owner_lookup ON packages(owner_type, owner_name);");
+db.exec(
+  'CREATE INDEX IF NOT EXISTS idx_packages_owner_lookup ON packages(owner_type, owner_name);'
+);
 
 const app = createApp(db);
 const server = app.listen(PORT, () => {
@@ -93,5 +106,5 @@ function shutdown(signal) {
   }, 5000).unref();
 }
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -1,13 +1,13 @@
-const fs = require("fs");
-const path = require("path");
-const { StringDecoder } = require("string_decoder");
-const {
+import fs from 'fs';
+import path from 'path';
+import { StringDecoder } from 'string_decoder';
+import {
   AUDIT_DATASET_DIR,
   AUDIT_DATASET_YEAR,
   GEO_ROOT_PATH,
   GEOJSON_PATH,
   PROVINCE_GEOJSON_PATH,
-} = require("./config");
+} from './config.js';
 
 const SEVERITY_SCORES = {
   low: 1,
@@ -17,96 +17,96 @@ const SEVERITY_SCORES = {
 };
 
 const PROVINCE_KEY_ALIASES = {
-  "daerah khusus ibukota jakarta": "jakartaraya",
-  "dki jakarta": "jakartaraya",
-  "jakarta raya": "jakartaraya",
-  "daerah istimewa yogyakarta": "yogyakarta",
-  "di yogyakarta": "yogyakarta",
-  "bangka belitung": "bangkabelitung",
-  "kep bangka belitung": "bangkabelitung",
-  "kepulauan bangka belitung": "bangkabelitung",
-  "kep riau": "kepulauanriau",
+  'daerah khusus ibukota jakarta': 'jakartaraya',
+  'dki jakarta': 'jakartaraya',
+  'jakarta raya': 'jakartaraya',
+  'daerah istimewa yogyakarta': 'yogyakarta',
+  'di yogyakarta': 'yogyakarta',
+  'bangka belitung': 'bangkabelitung',
+  'kep bangka belitung': 'bangkabelitung',
+  'kepulauan bangka belitung': 'bangkabelitung',
+  'kep riau': 'kepulauanriau',
 };
 
 const PROVINCE_DISPLAY_ALIASES = {
-  "Jakarta Raya": "DKI Jakarta",
-  Yogyakarta: "DI Yogyakarta",
-  "Daerah Istimewa Yogyakarta": "DI Yogyakarta",
-  "Bangka Belitung": "Kepulauan Bangka Belitung",
+  'Jakarta Raya': 'DKI Jakarta',
+  Yogyakarta: 'DI Yogyakarta',
+  'Daerah Istimewa Yogyakarta': 'DI Yogyakarta',
+  'Bangka Belitung': 'Kepulauan Bangka Belitung',
 };
 
 const REGION_KEY_ALIASES = {
-  "adm kepulauan seribu": "kepulauanseribu",
-  "adm kepulauanseribu": "kepulauanseribu",
-  "karang asem": "karangasem",
-  "kepulauan siau tagulandang biaro": "siautagulandangbiaro",
-  "kep seribu": "kepulauanseribu",
-  "bukit tinggi": "bukittinggi",
-  "kota sorong": "sorong",
-  "pangkal pinang": "pangkalpinang",
-  "pangkajene kepulauan": "pangkajenedankepulauan",
-  "penajem paser utara": "penajampaserutara",
-  "tanjung jabung barat": "tanjungjabungb",
-  "tanjung jabung timur": "tanjungjabungt",
-  "tanjung pinang": "tanjungpinang",
-  "tebing tinggi": "tebingtinggi",
-  terenggalek: "trenggalek",
+  'adm kepulauan seribu': 'kepulauanseribu',
+  'adm kepulauanseribu': 'kepulauanseribu',
+  'karang asem': 'karangasem',
+  'kepulauan siau tagulandang biaro': 'siautagulandangbiaro',
+  'kep seribu': 'kepulauanseribu',
+  'bukit tinggi': 'bukittinggi',
+  'kota sorong': 'sorong',
+  'pangkal pinang': 'pangkalpinang',
+  'pangkajene kepulauan': 'pangkajenedankepulauan',
+  'penajem paser utara': 'penajampaserutara',
+  'tanjung jabung barat': 'tanjungjabungb',
+  'tanjung jabung timur': 'tanjungjabungt',
+  'tanjung pinang': 'tanjungpinang',
+  'tebing tinggi': 'tebingtinggi',
+  terenggalek: 'trenggalek',
 };
 
 const REGION_DISPLAY_ALIASES = {
-  bukittinggi: "Bukit Tinggi",
-  kepulauanseribu: "Kepulauan Seribu",
-  pangkalpinang: "Pangkal Pinang",
-  pangkajenedankepulauan: "Pangkajene dan Kepulauan",
-  tanjungjabungb: "Tanjung Jabung Barat",
-  tanjungjabungt: "Tanjung Jabung Timur",
-  tanjungpinang: "Tanjung Pinang",
-  tebingtinggi: "Tebing Tinggi",
+  bukittinggi: 'Bukit Tinggi',
+  kepulauanseribu: 'Kepulauan Seribu',
+  pangkalpinang: 'Pangkal Pinang',
+  pangkajenedankepulauan: 'Pangkajene dan Kepulauan',
+  tanjungjabungb: 'Tanjung Jabung Barat',
+  tanjungjabungt: 'Tanjung Jabung Timur',
+  tanjungpinang: 'Tanjung Pinang',
+  tebingtinggi: 'Tebing Tinggi',
 };
 
 const OWNER_TYPE_ALIASES = {
-  central: "central",
-  instansipusat: "central",
-  kementerianlembaga: "central",
-  provinsi: "provinsi",
-  pemprov: "provinsi",
-  kabkota: "kabkota",
-  kabupatenkota: "kabkota",
-  pemkot: "kabkota",
-  pemkab: "kabkota",
-  other: "other",
-  others: "other",
-  lainnya: "other",
+  central: 'central',
+  instansipusat: 'central',
+  kementerianlembaga: 'central',
+  provinsi: 'provinsi',
+  pemprov: 'provinsi',
+  kabkota: 'kabkota',
+  kabupatenkota: 'kabkota',
+  pemkot: 'kabkota',
+  pemkab: 'kabkota',
+  other: 'other',
+  others: 'other',
+  lainnya: 'other',
 };
 
 const REGION_OWNER_METRIC_COLUMNS = [
   {
-    ownerType: "central",
-    countColumn: "central_packages",
-    priorityColumn: "central_priority_packages",
-    wasteColumn: "central_potential_waste",
-    budgetColumn: "central_budget",
+    ownerType: 'central',
+    countColumn: 'central_packages',
+    priorityColumn: 'central_priority_packages',
+    wasteColumn: 'central_potential_waste',
+    budgetColumn: 'central_budget',
   },
   {
-    ownerType: "provinsi",
-    countColumn: "provincial_packages",
-    priorityColumn: "provincial_priority_packages",
-    wasteColumn: "provincial_potential_waste",
-    budgetColumn: "provincial_budget",
+    ownerType: 'provinsi',
+    countColumn: 'provincial_packages',
+    priorityColumn: 'provincial_priority_packages',
+    wasteColumn: 'provincial_potential_waste',
+    budgetColumn: 'provincial_budget',
   },
   {
-    ownerType: "kabkota",
-    countColumn: "local_packages",
-    priorityColumn: "local_priority_packages",
-    wasteColumn: "local_potential_waste",
-    budgetColumn: "local_budget",
+    ownerType: 'kabkota',
+    countColumn: 'local_packages',
+    priorityColumn: 'local_priority_packages',
+    wasteColumn: 'local_potential_waste',
+    budgetColumn: 'local_budget',
   },
   {
-    ownerType: "other",
-    countColumn: "other_packages",
-    priorityColumn: "other_priority_packages",
-    wasteColumn: "other_potential_waste",
-    budgetColumn: "other_budget",
+    ownerType: 'other',
+    countColumn: 'other_packages',
+    priorityColumn: 'other_priority_packages',
+    wasteColumn: 'other_potential_waste',
+    budgetColumn: 'other_budget',
   },
 ];
 
@@ -168,16 +168,16 @@ const PROVINCE_METRICS_TABLE_SQL = `
 `;
 
 const REQUIRED_OWNER_METRICS_COLUMNS = [
-  "owner_type",
-  "owner_name",
-  "total_packages",
-  "total_priority_packages",
-  "total_flagged_packages",
-  "total_potential_waste",
-  "total_budget",
-  "med_severity_packages",
-  "high_severity_packages",
-  "absurd_severity_packages",
+  'owner_type',
+  'owner_name',
+  'total_packages',
+  'total_priority_packages',
+  'total_flagged_packages',
+  'total_potential_waste',
+  'total_budget',
+  'med_severity_packages',
+  'high_severity_packages',
+  'absurd_severity_packages',
 ];
 
 const OWNER_METRICS_TABLE_SQL = `
@@ -196,8 +196,18 @@ const OWNER_METRICS_TABLE_SQL = `
     );
 `;
 
-const UNKNOWN_OWNER_NAMES = new Set(["", "-", "n a", "na", "none", "null", "tanpa lembaga", "tidak diketahui", "unknown"]);
-const SKIPPED_GEO_DIRECTORY_FILES = new Set(["none.geojson"]);
+const UNKNOWN_OWNER_NAMES = new Set([
+  '',
+  '-',
+  'n a',
+  'na',
+  'none',
+  'null',
+  'tanpa lembaga',
+  'tidak diketahui',
+  'unknown',
+]);
+const SKIPPED_GEO_DIRECTORY_FILES = new Set(['none.geojson']);
 const DISTRICT_GEO_MAX_RING_POINTS = 220;
 const PROVINCE_GEO_MAX_RING_POINTS = 120;
 const JSONL_READ_BUFFER_SIZE = 256 * 1024;
@@ -214,47 +224,49 @@ function cleanText(value) {
 }
 
 function toComparableWords(value) {
-  return String(value || "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
 
 function toComparableSlug(value) {
-  return toComparableWords(value).replace(/\s+/g, "");
+  return toComparableWords(value).replace(/\s+/g, '');
 }
 
 function slugify(value) {
-  return String(value || "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "item";
+  return (
+    String(value || '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'item'
+  );
 }
 
 function parseBoolean(value) {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return null;
   }
 
-  if (typeof value === "boolean") {
+  if (typeof value === 'boolean') {
     return value;
   }
 
-  if (typeof value === "number") {
+  if (typeof value === 'number') {
     return value !== 0;
   }
 
   const normalized = String(value).trim().toLowerCase();
 
-  if (["1", "true", "yes", "ya"].includes(normalized)) {
+  if (['1', 'true', 'yes', 'ya'].includes(normalized)) {
     return true;
   }
 
-  if (["0", "false", "no", "tidak"].includes(normalized)) {
+  if (['0', 'false', 'no', 'tidak'].includes(normalized)) {
     return false;
   }
 
@@ -262,15 +274,15 @@ function parseBoolean(value) {
 }
 
 function parseInteger(value) {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return null;
   }
 
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
     return Math.round(value);
   }
 
-  const normalized = String(value).trim().replace(/\./g, "").replace(/,/g, "");
+  const normalized = String(value).trim().replace(/\./g, '').replace(/,/g, '');
 
   if (!normalized) {
     return null;
@@ -281,11 +293,11 @@ function parseInteger(value) {
 }
 
 function parseAmount(value, budget) {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return 0;
   }
 
-  const parsed = Number.parseFloat(String(value).trim().replace(/\./g, "").replace(/,/g, ""));
+  const parsed = Number.parseFloat(String(value).trim().replace(/\./g, '').replace(/,/g, ''));
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 0;
   }
@@ -298,29 +310,29 @@ function parseAmount(value, budget) {
 }
 
 function normalizeSeverity(value) {
-  if (typeof value === "boolean") {
-    return value ? "med" : "low";
+  if (typeof value === 'boolean') {
+    return value ? 'med' : 'low';
   }
 
   const text = cleanText(value);
   if (!text) {
-    return "low";
+    return 'low';
   }
 
   const normalized = text.toLowerCase();
-  if (normalized === "high") {
-    return "high";
+  if (normalized === 'high') {
+    return 'high';
   }
 
-  if (normalized === "absurd") {
-    return "absurd";
+  if (normalized === 'absurd') {
+    return 'absurd';
   }
 
-  if (normalized === "med" || normalized === "medium") {
-    return "med";
+  if (normalized === 'med' || normalized === 'medium') {
+    return 'med';
   }
 
-  return "low";
+  return 'low';
 }
 
 function sanitizeReason(value) {
@@ -332,30 +344,30 @@ function inferOwnerType(ownerName) {
   const normalized = toComparableWords(ownerName);
 
   if (!normalized || UNKNOWN_OWNER_NAMES.has(normalized)) {
-    return "other";
+    return 'other';
   }
 
   if (
-    normalized.startsWith("kab ") ||
-    normalized.startsWith("kabupaten ") ||
-    normalized.startsWith("kota ") ||
-    normalized.startsWith("pemkab ") ||
-    normalized.startsWith("pemerintah kabupaten ") ||
-    normalized.startsWith("pemkot ") ||
-    normalized.startsWith("pemerintah kota ")
+    normalized.startsWith('kab ') ||
+    normalized.startsWith('kabupaten ') ||
+    normalized.startsWith('kota ') ||
+    normalized.startsWith('pemkab ') ||
+    normalized.startsWith('pemerintah kabupaten ') ||
+    normalized.startsWith('pemkot ') ||
+    normalized.startsWith('pemerintah kota ')
   ) {
-    return "kabkota";
+    return 'kabkota';
   }
 
   if (
-    normalized.startsWith("provinsi ") ||
-    normalized.startsWith("pemprov ") ||
-    normalized.startsWith("pemerintah provinsi ")
+    normalized.startsWith('provinsi ') ||
+    normalized.startsWith('pemprov ') ||
+    normalized.startsWith('pemerintah provinsi ')
   ) {
-    return "provinsi";
+    return 'provinsi';
   }
 
-  return "central";
+  return 'central';
 }
 
 function normalizeOwnerType(value, ownerName) {
@@ -375,32 +387,32 @@ function normalizeProvinceKey(value) {
 
 function normalizeProvinceDisplayName(value) {
   const text = cleanText(value);
-  return text ? PROVINCE_DISPLAY_ALIASES[text] || text : "Tidak diketahui";
+  return text ? PROVINCE_DISPLAY_ALIASES[text] || text : 'Tidak diketahui';
 }
 
 function normalizeRegionType(value) {
   const normalized = toComparableWords(value);
-  return normalized.startsWith("kab") ? "Kabupaten" : "Kota";
+  return normalized.startsWith('kab') ? 'Kabupaten' : 'Kota';
 }
 
 function normalizeRegionKey(value) {
   const normalized = toComparableWords(value)
-    .replace(/^kabupaten\s+/, "")
-    .replace(/^kab\s+/, "")
-    .replace(/^kota\s+/, "")
-    .replace(/^adm\.?\s+/, "")
+    .replace(/^kabupaten\s+/, '')
+    .replace(/^kab\s+/, '')
+    .replace(/^kota\s+/, '')
+    .replace(/^adm\.?\s+/, '')
     .trim();
 
   return REGION_KEY_ALIASES[normalized] || toComparableSlug(normalized);
 }
 
 function normalizeRegionDisplayName(value, regionType) {
-  const cleaned = cleanText(value) || "Tidak diketahui";
+  const cleaned = cleanText(value) || 'Tidak diketahui';
   const withoutPrefix = cleaned
-    .replace(/^Kabupaten\s+/i, "")
-    .replace(/^Kab\.\s+/i, "")
-    .replace(/^Kota\s+/i, "")
-    .replace(/^Adm\.?\s+/i, "")
+    .replace(/^Kabupaten\s+/i, '')
+    .replace(/^Kab\.\s+/i, '')
+    .replace(/^Kota\s+/i, '')
+    .replace(/^Adm\.?\s+/i, '')
     .trim();
   const key = normalizeRegionKey(withoutPrefix);
 
@@ -420,7 +432,7 @@ function buildRegionOnlyLookupKey(regionName, regionType) {
 }
 
 function buildRegionDisplayName(regionName, regionType) {
-  return `${regionType === "Kota" ? "Kota" : "Kab."} ${regionName}`;
+  return `${regionType === 'Kota' ? 'Kota' : 'Kab.'} ${regionName}`;
 }
 
 function roundPoint(point) {
@@ -428,7 +440,9 @@ function roundPoint(point) {
 }
 
 function samePoint(left, right) {
-  return Array.isArray(left) && Array.isArray(right) && left[0] === right[0] && left[1] === right[1];
+  return (
+    Array.isArray(left) && Array.isArray(right) && left[0] === right[0] && left[1] === right[1]
+  );
 }
 
 function simplifyRing(ring, maxPoints) {
@@ -468,17 +482,19 @@ function simplifyGeometry(geometry, maxRingPoints) {
     return geometry;
   }
 
-  if (geometry.type === "Polygon") {
+  if (geometry.type === 'Polygon') {
     return {
       ...geometry,
       coordinates: geometry.coordinates.map((ring) => simplifyRing(ring, maxRingPoints)),
     };
   }
 
-  if (geometry.type === "MultiPolygon") {
+  if (geometry.type === 'MultiPolygon') {
     return {
       ...geometry,
-      coordinates: geometry.coordinates.map((polygon) => polygon.map((ring) => simplifyRing(ring, maxRingPoints))),
+      coordinates: geometry.coordinates.map((polygon) =>
+        polygon.map((ring) => simplifyRing(ring, maxRingPoints))
+      ),
     };
   }
 
@@ -486,9 +502,9 @@ function simplifyGeometry(geometry, maxRingPoints) {
 }
 
 function parseGeoJsonFile(filePath) {
-  const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-  if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) {
+  if (!payload || payload.type !== 'FeatureCollection' || !Array.isArray(payload.features)) {
     throw new Error(`GeoJSON asset at "${filePath}" is invalid.`);
   }
 
@@ -498,25 +514,27 @@ function parseGeoJsonFile(filePath) {
 function listGeoDirectoryFiles(directoryPath) {
   return fs
     .readdirSync(directoryPath, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".geojson"))
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.geojson'))
     .map((entry) => path.resolve(directoryPath, entry.name))
     .sort((left, right) => left.localeCompare(right));
 }
 
 function resolveLegacyFallbackGeoPath(directoryPath) {
-  const fallbackPath = path.resolve(directoryPath, "..", "indonesia-kabkota-simple.geojson");
+  const fallbackPath = path.resolve(directoryPath, '..', 'indonesia-kabkota-simple.geojson');
   return fs.existsSync(fallbackPath) ? fallbackPath : null;
 }
 
 function assertGeoFeature(feature, sourcePath, index) {
   if (
     !feature ||
-    feature.type !== "Feature" ||
+    feature.type !== 'Feature' ||
     !feature.geometry ||
     !feature.properties ||
-    typeof feature.properties !== "object"
+    typeof feature.properties !== 'object'
   ) {
-    throw new Error(`GeoJSON asset at "${sourcePath}" contains an invalid feature at index ${index}.`);
+    throw new Error(
+      `GeoJSON asset at "${sourcePath}" contains an invalid feature at index ${index}.`
+    );
   }
 }
 
@@ -538,7 +556,7 @@ function loadGeoSource() {
   }
 
   return {
-    kind: "district-directory",
+    kind: 'district-directory',
     sourcePath: GEOJSON_PATH,
   };
 }
@@ -559,7 +577,7 @@ function loadProvinceGeoSource() {
   }
 
   return {
-    kind: "province-directory",
+    kind: 'province-directory',
     sourcePath: PROVINCE_GEOJSON_PATH,
   };
 }
@@ -567,7 +585,7 @@ function loadProvinceGeoSource() {
 function parseCsv(text) {
   const rows = [];
   let row = [];
-  let field = "";
+  let field = '';
   let inQuotes = false;
 
   for (let index = 0; index < text.length; index += 1) {
@@ -593,21 +611,21 @@ function parseCsv(text) {
       continue;
     }
 
-    if (character === ",") {
+    if (character === ',') {
       row.push(field);
-      field = "";
+      field = '';
       continue;
     }
 
-    if (character === "\n") {
+    if (character === '\n') {
       row.push(field);
       rows.push(row);
       row = [];
-      field = "";
+      field = '';
       continue;
     }
 
-    if (character !== "\r") {
+    if (character !== '\r') {
       field += character;
     }
   }
@@ -625,12 +643,12 @@ function parseCsv(text) {
 
   return rows
     .slice(1)
-    .filter((currentRow) => currentRow.some((value) => value !== ""))
+    .filter((currentRow) => currentRow.some((value) => value !== ''))
     .map((currentRow) => {
       const record = {};
 
       headers.forEach((header, columnIndex) => {
-        record[header] = currentRow[columnIndex] ?? "";
+        record[header] = currentRow[columnIndex] ?? '';
       });
 
       return record;
@@ -638,7 +656,7 @@ function parseCsv(text) {
 }
 
 function escapeRegExp(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function listDatasetPartFiles(extension) {
@@ -646,12 +664,12 @@ function listDatasetPartFiles(extension) {
     return [];
   }
 
-  const year = String(AUDIT_DATASET_YEAR || "").trim();
+  const year = String(AUDIT_DATASET_YEAR || '').trim();
   if (!year) {
     return [];
   }
 
-  const matcher = new RegExp(`^year-${escapeRegExp(year)}\\.part-(\\d{5})\\.${extension}$`, "i");
+  const matcher = new RegExp(`^year-${escapeRegExp(year)}\\.part-(\\d{5})\\.${extension}$`, 'i');
 
   return fs
     .readdirSync(AUDIT_DATASET_DIR, { withFileTypes: true })
@@ -682,20 +700,20 @@ function selectAuditSource() {
     throw new Error(`Dataset folder was not found at "${AUDIT_DATASET_DIR}".`);
   }
 
-  const datasetJsonlFiles = listDatasetPartFiles("jsonl");
+  const datasetJsonlFiles = listDatasetPartFiles('jsonl');
   if (datasetJsonlFiles.length) {
     return {
-      sourceFormat: "jsonl",
-      sourcePath: datasetSourcePath("jsonl"),
+      sourceFormat: 'jsonl',
+      sourcePath: datasetSourcePath('jsonl'),
       sourceFiles: datasetJsonlFiles,
     };
   }
 
-  const datasetCsvFiles = listDatasetPartFiles("csv");
+  const datasetCsvFiles = listDatasetPartFiles('csv');
   if (datasetCsvFiles.length) {
     return {
-      sourceFormat: "csv",
-      sourcePath: datasetSourcePath("csv"),
+      sourceFormat: 'csv',
+      sourcePath: datasetSourcePath('csv'),
       sourceFiles: datasetCsvFiles,
     };
   }
@@ -706,7 +724,7 @@ function selectAuditSource() {
 }
 
 function forEachAuditRow(source, onRow) {
-  if (source.sourceFormat === "jsonl") {
+  if (source.sourceFormat === 'jsonl') {
     for (const filePath of source.sourceFiles) {
       forEachJsonlRow(filePath, onRow);
     }
@@ -715,7 +733,7 @@ function forEachAuditRow(source, onRow) {
   }
 
   for (const filePath of source.sourceFiles) {
-    const rows = parseCsv(fs.readFileSync(filePath, "utf8"));
+    const rows = parseCsv(fs.readFileSync(filePath, 'utf8'));
 
     for (const row of rows) {
       onRow(row);
@@ -724,17 +742,17 @@ function forEachAuditRow(source, onRow) {
 }
 
 function forEachJsonlRow(filePath, onRow) {
-  const fd = fs.openSync(filePath, "r");
+  const fd = fs.openSync(filePath, 'r');
   const buffer = Buffer.allocUnsafe(JSONL_READ_BUFFER_SIZE);
-  const decoder = new StringDecoder("utf8");
+  const decoder = new StringDecoder('utf8');
   let lineNumber = 0;
-  let pending = "";
+  let pending = '';
 
   const processLine = (rawLine) => {
     lineNumber += 1;
 
     let line = rawLine;
-    if (line.endsWith("\r")) {
+    if (line.endsWith('\r')) {
       line = line.slice(0, -1);
     }
 
@@ -746,7 +764,9 @@ function forEachJsonlRow(filePath, onRow) {
     try {
       onRow(JSON.parse(line));
     } catch (error) {
-      throw new Error(`Failed to parse JSONL at "${filePath}" line ${lineNumber}: ${error.message}`);
+      throw new Error(
+        `Failed to parse JSONL at "${filePath}" line ${lineNumber}: ${error.message}`
+      );
     }
   };
 
@@ -759,8 +779,8 @@ function forEachJsonlRow(filePath, onRow) {
       }
 
       const chunk = pending + decoder.write(buffer.subarray(0, bytesRead));
-      const lines = chunk.split("\n");
-      pending = lines.pop() || "";
+      const lines = chunk.split('\n');
+      pending = lines.pop() || '';
 
       for (const rawLine of lines) {
         processLine(rawLine);
@@ -781,7 +801,13 @@ function loadAuditRows() {
 }
 
 function getTagValue(row, key) {
-  if (row && typeof row === "object" && row.tags && typeof row.tags === "object" && key in row.tags) {
+  if (
+    row &&
+    typeof row === 'object' &&
+    row.tags &&
+    typeof row.tags === 'object' &&
+    key in row.tags
+  ) {
     return row.tags[key];
   }
 
@@ -791,37 +817,35 @@ function getTagValue(row, key) {
 function inferSchemaVersion(row) {
   if (
     row.reason !== undefined ||
-    getTagValue(row, "isMencurigakan") !== undefined ||
-    getTagValue(row, "isPemborosan") !== undefined ||
-    getTagValue(row, "isInappropriateUse") !== undefined
+    getTagValue(row, 'isMencurigakan') !== undefined ||
+    getTagValue(row, 'isPemborosan') !== undefined ||
+    getTagValue(row, 'isInappropriateUse') !== undefined
   ) {
-    return "analyze_v2";
+    return 'analyze_v2';
   }
 
-  return "analyze_legacy";
+  return 'analyze_legacy';
 }
 
 function normalizeAuditRow(row, index) {
   const schemaVersion = inferSchemaVersion(row);
   const flags = {
-    isMencurigakan: parseBoolean(getTagValue(row, "isMencurigakan")),
-    isPemborosan: parseBoolean(getTagValue(row, "isPemborosan")),
+    isMencurigakan: parseBoolean(getTagValue(row, 'isMencurigakan')),
+    isPemborosan: parseBoolean(getTagValue(row, 'isPemborosan')),
   };
   const budget = parseInteger(row.pagu);
   const severity = normalizeSeverity(
-    getTagValue(row, "isInappropriateUse") ?? getTagValue(row, "isInappropriate")
+    getTagValue(row, 'isInappropriateUse') ?? getTagValue(row, 'isInappropriate')
   );
-  const reason = sanitizeReason(row.reason ?? getTagValue(row, "inappropriateReason"));
+  const reason = sanitizeReason(row.reason ?? getTagValue(row, 'inappropriateReason'));
   const potentialWaste = parseAmount(row.potensiPemborosan, budget);
   const riskScore =
-    (flags.isMencurigakan ? 1 : 0) +
-    (flags.isPemborosan ? 1 : 0) +
-    SEVERITY_SCORES[severity];
+    (flags.isMencurigakan ? 1 : 0) + (flags.isPemborosan ? 1 : 0) + SEVERITY_SCORES[severity];
   const activeTagCount =
     (flags.isMencurigakan ? 1 : 0) +
     (flags.isPemborosan ? 1 : 0) +
-    (severity === "med" || severity === "high" || severity === "absurd" ? 1 : 0);
-  const ownerName = cleanText(row.lembaga) || "Tanpa lembaga";
+    (severity === 'med' || severity === 'high' || severity === 'absurd' ? 1 : 0);
+  const ownerName = cleanText(row.lembaga) || 'Tanpa lembaga';
   const ownerType = normalizeOwnerType(row.ownerType ?? row.owner_type, ownerName);
   const sourceId = cleanText(row.id) || `row-${index + 1}`;
 
@@ -835,7 +859,7 @@ function normalizeAuditRow(row, index) {
     package_name: cleanText(row.paket) || `Paket ${sourceId}`,
     procurement_type: cleanText(row.jenisPengadaan),
     procurement_method: cleanText(row.metode),
-    location_raw: cleanText(row.lokasi) || "",
+    location_raw: cleanText(row.lokasi) || '',
     budget,
     selection_date: cleanText(row.pemilihanDate),
     funding_source: cleanText(row.sumberDana),
@@ -859,31 +883,33 @@ function normalizeAuditRow(row, index) {
 }
 
 function splitLocationSegments(locationRaw) {
-  return String(locationRaw || "")
-    .split("|")
+  return String(locationRaw || '')
+    .split('|')
     .map((segment) => segment.trim())
     .filter(Boolean);
 }
 
 function parseLocationSegment(segment) {
-  let value = String(segment || "").replace(/\s+/g, " ").trim();
+  let value = String(segment || '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  if (!value || value === "LAINNYA, Luar Indonesia") {
+  if (!value || value === 'LAINNYA, Luar Indonesia') {
     return null;
   }
 
   value = value
-    .replace(/\(Kab\)$/i, "(Kab.)")
-    .replace(/\(Kab\)/i, "(Kab.)")
-    .replace(/\(Kota\.\)/i, "(Kota)")
-    .replace(/([^\s])\((Kab\.|Kab|Kota)\)/gi, "$1 ($2)");
+    .replace(/\(Kab\)$/i, '(Kab.)')
+    .replace(/\(Kab\)/i, '(Kab.)')
+    .replace(/\(Kota\.\)/i, '(Kota)')
+    .replace(/([^\s])\((Kab\.|Kab|Kota)\)/gi, '$1 ($2)');
 
   let match = value.match(/^(.+),\s+(.+)\s+\((Kab\.|Kota)\)$/i);
   if (match) {
     return {
       provinceName: match[1].trim(),
       regionName: match[2].trim(),
-      regionType: match[3].toLowerCase().startsWith("kab") ? "Kabupaten" : "Kota",
+      regionType: match[3].toLowerCase().startsWith('kab') ? 'Kabupaten' : 'Kota',
     };
   }
 
@@ -892,7 +918,7 @@ function parseLocationSegment(segment) {
     return {
       provinceName: match[1].trim(),
       regionName: match[2].trim(),
-      regionType: "Kabupaten",
+      regionType: 'Kabupaten',
     };
   }
 
@@ -901,7 +927,7 @@ function parseLocationSegment(segment) {
     return {
       provinceName: match[1].trim(),
       regionName: match[2].trim(),
-      regionType: "Kota",
+      regionType: 'Kota',
     };
   }
 
@@ -913,7 +939,9 @@ function createLegacyRegionRecord(feature, index) {
   const regionType = normalizeRegionType(feature.properties.TYPE_2);
   const regionName = normalizeRegionDisplayName(feature.properties.NAME_2, regionType);
   const gid = cleanText(feature.properties.GID_2);
-  const regionKey = gid ? `gid-${slugify(gid)}` : `region-${slugify(`${provinceName}-${regionType}-${regionName}`)}`;
+  const regionKey = gid
+    ? `gid-${slugify(gid)}`
+    : `region-${slugify(`${provinceName}-${regionType}-${regionName}`)}`;
 
   return {
     region_key: regionKey,
@@ -929,7 +957,7 @@ function createLegacyRegionRecord(feature, index) {
 
 function normalizeDistrictRegionType(value) {
   const normalized = toComparableWords(value);
-  return normalized.startsWith("kota") ? "Kota" : "Kabupaten";
+  return normalized.startsWith('kota') ? 'Kota' : 'Kabupaten';
 }
 
 function createDistrictRegionRecord(feature, index) {
@@ -964,7 +992,7 @@ function createProvinceRecord(feature, index) {
 
 function buildGeoFeature(record, geometry) {
   return {
-    type: "Feature",
+    type: 'Feature',
     geometry: simplifyGeometry(geometry, DISTRICT_GEO_MAX_RING_POINTS),
     properties: {
       regionKey: record.region_key,
@@ -979,14 +1007,14 @@ function buildGeoFeature(record, geometry) {
 
 function buildProvinceGeoFeature(record, geometry) {
   return {
-    type: "Feature",
+    type: 'Feature',
     geometry: simplifyGeometry(geometry, PROVINCE_GEO_MAX_RING_POINTS),
     properties: {
       provinceKey: record.province_key,
       code: record.code,
       provinceName: record.province_name,
       displayName: record.display_name,
-      regionType: "Provinsi",
+      regionType: 'Provinsi',
     },
   };
 }
@@ -1007,13 +1035,13 @@ function buildLegacyGeoRegistry(filePath) {
   });
 
   return {
-    mode: "legacy-file",
+    mode: 'legacy-file',
     sourcePath: filePath,
     sourceFiles: [filePath],
     usedSourceFiles: [filePath],
     skippedFiles: [],
     geoJson: {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features,
     },
     regions,
@@ -1060,7 +1088,7 @@ function selectDistrictGeometrySet(record, payload, legacyGeometryIndex) {
 
   if (payload.features.length > 1 || !legacyGeometryIndex) {
     return {
-      source: "district-raw",
+      source: 'district-raw',
       geometries: rawGeometries,
     };
   }
@@ -1069,7 +1097,7 @@ function selectDistrictGeometrySet(record, payload, legacyGeometryIndex) {
 
   if (exactGeometry) {
     return {
-      source: "legacy-exact",
+      source: 'legacy-exact',
       geometries: [exactGeometry],
     };
   }
@@ -1080,13 +1108,13 @@ function selectDistrictGeometrySet(record, payload, legacyGeometryIndex) {
 
   if (regionOnlyGeometry) {
     return {
-      source: "legacy-region-only",
+      source: 'legacy-region-only',
       geometries: [regionOnlyGeometry],
     };
   }
 
   return {
-    source: "district-raw",
+    source: 'district-raw',
     geometries: rawGeometries,
   };
 }
@@ -1094,16 +1122,18 @@ function selectDistrictGeometrySet(record, payload, legacyGeometryIndex) {
 function buildDistrictDirectoryGeoRegistry(directoryPath) {
   const sourceFiles = listGeoDirectoryFiles(directoryPath);
   const legacyFallbackGeoPath = resolveLegacyFallbackGeoPath(directoryPath);
-  const legacyGeometryIndex = legacyFallbackGeoPath ? buildLegacyGeometryIndex(legacyFallbackGeoPath) : null;
+  const legacyGeometryIndex = legacyFallbackGeoPath
+    ? buildLegacyGeometryIndex(legacyFallbackGeoPath)
+    : null;
   const usedSourceFiles = [];
   const skippedFiles = [];
   const lookup = new Map();
   const regions = [];
   const features = [];
   const geometrySourceCounts = {
-    "district-raw": 0,
-    "legacy-exact": 0,
-    "legacy-region-only": 0,
+    'district-raw': 0,
+    'legacy-exact': 0,
+    'legacy-region-only': 0,
   };
 
   for (const filePath of sourceFiles) {
@@ -1112,7 +1142,7 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
     if (SKIPPED_GEO_DIRECTORY_FILES.has(fileName.toLowerCase())) {
       skippedFiles.push({
         fileName,
-        reason: "reserved-file",
+        reason: 'reserved-file',
       });
       continue;
     }
@@ -1122,7 +1152,7 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
     if (!payload.features.length) {
       skippedFiles.push({
         fileName,
-        reason: "empty-feature-collection",
+        reason: 'empty-feature-collection',
       });
       continue;
     }
@@ -1132,7 +1162,9 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
     const record = createDistrictRegionRecord(payload.features[0], features.length);
 
     if (lookup.has(record.lookup_key)) {
-      throw new Error(`Duplicate geo region lookup key "${record.lookup_key}" found in "${filePath}".`);
+      throw new Error(
+        `Duplicate geo region lookup key "${record.lookup_key}" found in "${filePath}".`
+      );
     }
 
     lookup.set(record.lookup_key, record);
@@ -1152,7 +1184,7 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
   }
 
   return {
-    mode: "district-directory",
+    mode: 'district-directory',
     sourcePath: directoryPath,
     sourceFiles,
     usedSourceFiles,
@@ -1160,7 +1192,7 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
     legacyFallbackGeoPath,
     geometrySourceCounts,
     geoJson: {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features,
     },
     regions,
@@ -1171,7 +1203,7 @@ function buildDistrictDirectoryGeoRegistry(directoryPath) {
 function loadGeoRegistry() {
   const geoSource = loadGeoSource();
 
-  if (geoSource.kind === "legacy-file") {
+  if (geoSource.kind === 'legacy-file') {
     return buildLegacyGeoRegistry(geoSource.sourcePath);
   }
 
@@ -1193,7 +1225,7 @@ function buildProvinceGeoRegistry(directoryPath) {
     if (!payload.features.length) {
       skippedFiles.push({
         fileName,
-        reason: "empty-feature-collection",
+        reason: 'empty-feature-collection',
       });
       continue;
     }
@@ -1203,7 +1235,9 @@ function buildProvinceGeoRegistry(directoryPath) {
     const record = createProvinceRecord(payload.features[0], features.length);
 
     if (lookup.has(record.lookup_key)) {
-      throw new Error(`Duplicate province lookup key "${record.lookup_key}" found in "${filePath}".`);
+      throw new Error(
+        `Duplicate province lookup key "${record.lookup_key}" found in "${filePath}".`
+      );
     }
 
     lookup.set(record.lookup_key, record);
@@ -1217,13 +1251,13 @@ function buildProvinceGeoRegistry(directoryPath) {
   }
 
   return {
-    mode: "province-directory",
+    mode: 'province-directory',
     sourcePath: directoryPath,
     sourceFiles,
     usedSourceFiles,
     skippedFiles,
     geoJson: {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features,
     },
     provinces,
@@ -1246,7 +1280,11 @@ function resolveRegionKeys(locationRaw, lookup) {
       continue;
     }
 
-    const lookupKey = buildLocationLookupKey(parsed.provinceName, parsed.regionName, parsed.regionType);
+    const lookupKey = buildLocationLookupKey(
+      parsed.provinceName,
+      parsed.regionName,
+      parsed.regionType
+    );
     const region = lookup.get(lookupKey);
 
     if (region) {
@@ -1278,7 +1316,9 @@ function resolveProvinceKeys(locationRaw, provinceLookup, regionLookup) {
       continue;
     }
 
-    const region = regionLookup.get(buildLocationLookupKey(parsed.provinceName, parsed.regionName, parsed.regionType));
+    const region = regionLookup.get(
+      buildLocationLookupKey(parsed.provinceName, parsed.regionName, parsed.regionType)
+    );
 
     if (!region) {
       continue;
@@ -1298,7 +1338,7 @@ function createLocationResolver(lookup, provinceLookup, regionLookup) {
   const cache = new Map();
 
   return (locationRaw) => {
-    const cacheKey = String(locationRaw || "");
+    const cacheKey = String(locationRaw || '');
     const cached = cache.get(cacheKey);
 
     if (cached) {
@@ -1336,7 +1376,7 @@ function createRelationBulkInserter(db, tableName, leftColumn, rightColumn) {
       let statement = statementByChunkSize.get(chunkSize);
 
       if (!statement) {
-        const placeholders = new Array(chunkSize).fill("(?, ?)").join(", ");
+        const placeholders = new Array(chunkSize).fill('(?, ?)').join(', ');
         statement = db.prepare(`
           INSERT INTO ${tableName} (${leftColumn}, ${rightColumn})
           VALUES ${placeholders}
@@ -1631,16 +1671,17 @@ function ensureRegionMetricsCompatibility(db) {
   const hasRegionMetricsTable = Boolean(
     db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'region_metrics'").get()
   );
-  const columnNames = hasRegionMetricsTable ? listTableColumns(db, "region_metrics") : new Set();
+  const columnNames = hasRegionMetricsTable ? listTableColumns(db, 'region_metrics') : new Set();
   const needsRebuild =
-    !hasRegionMetricsTable || REQUIRED_REGION_METRICS_COLUMNS.some((columnName) => !columnNames.has(columnName));
+    !hasRegionMetricsTable ||
+    REQUIRED_REGION_METRICS_COLUMNS.some((columnName) => !columnNames.has(columnName));
 
   if (!needsRebuild) {
     return false;
   }
 
   db.transaction(() => {
-    db.exec("DROP TABLE IF EXISTS region_metrics;");
+    db.exec('DROP TABLE IF EXISTS region_metrics;');
     db.exec(REGION_METRICS_TABLE_SQL);
     materializeRegionMetrics(db);
   })();
@@ -1652,16 +1693,17 @@ function ensureOwnerMetricsCompatibility(db) {
   const hasOwnerMetricsTable = Boolean(
     db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'owner_metrics'").get()
   );
-  const columnNames = hasOwnerMetricsTable ? listTableColumns(db, "owner_metrics") : new Set();
+  const columnNames = hasOwnerMetricsTable ? listTableColumns(db, 'owner_metrics') : new Set();
   const needsRebuild =
-    !hasOwnerMetricsTable || REQUIRED_OWNER_METRICS_COLUMNS.some((columnName) => !columnNames.has(columnName));
+    !hasOwnerMetricsTable ||
+    REQUIRED_OWNER_METRICS_COLUMNS.some((columnName) => !columnNames.has(columnName));
 
   if (!needsRebuild) {
     return false;
   }
 
   db.transaction(() => {
-    db.exec("DROP TABLE IF EXISTS owner_metrics;");
+    db.exec('DROP TABLE IF EXISTS owner_metrics;');
     db.exec(OWNER_METRICS_TABLE_SQL);
     materializeOwnerMetrics(db);
   })();
@@ -1698,7 +1740,7 @@ function seedDatabase(db) {
   let unmappedPackageCount = 0;
   let multiLocationPackageCount = 0;
 
-  const insertAsset = db.prepare("INSERT INTO assets (key, json) VALUES (?, ?)");
+  const insertAsset = db.prepare('INSERT INTO assets (key, json) VALUES (?, ?)');
   const insertRegion = db.prepare(`
     INSERT INTO regions (
       region_key, code, province_name, region_name, region_type, display_name, feature_index
@@ -1728,14 +1770,24 @@ function seedDatabase(db) {
       @active_tag_count, @is_priority, @is_flagged, @mapped_region_count, @inserted_order
     )
   `);
-  const flushPackageRegions = createRelationBulkInserter(db, "package_regions", "package_id", "region_key");
-  const flushPackageProvinces = createRelationBulkInserter(db, "package_provinces", "package_id", "province_key");
+  const flushPackageRegions = createRelationBulkInserter(
+    db,
+    'package_regions',
+    'package_id',
+    'region_key'
+  );
+  const flushPackageProvinces = createRelationBulkInserter(
+    db,
+    'package_provinces',
+    'package_id',
+    'province_key'
+  );
   const pendingPackageRegions = [];
   const pendingPackageProvinces = [];
 
   db.transaction(() => {
-    insertAsset.run("audit_geojson", JSON.stringify(geoJson));
-    insertAsset.run("audit_province_geojson", JSON.stringify(provinceGeoJson));
+    insertAsset.run('audit_geojson', JSON.stringify(geoJson));
+    insertAsset.run('audit_province_geojson', JSON.stringify(provinceGeoJson));
 
     for (const region of regions) {
       insertRegion.run(region);
@@ -1787,7 +1839,7 @@ function seedDatabase(db) {
     flushPackageProvinces(pendingPackageProvinces);
 
     insertAsset.run(
-      "audit_metadata",
+      'audit_metadata',
       JSON.stringify({
         importedAt: new Date().toISOString(),
         sourceFormat,
@@ -1845,7 +1897,7 @@ function seedDatabase(db) {
   };
 }
 
-module.exports = {
+export {
   createSchema,
   ensureOwnerMetricsCompatibility,
   ensureRegionMetricsCompatibility,

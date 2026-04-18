@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const Database = require("better-sqlite3");
-const { DATA_DIR } = require("../src/config");
-const { exportDatabaseAsSql, getTransferFileFormat } = require("../src/db-transfer");
-const { resolveRuntimeDbPath } = require("../src/db");
+import fs from "fs";
+import path from "path";
+import Database from "better-sqlite3";
+import {  DATA_DIR  } from "../src/backend/config.js";
+import {  exportDatabaseAsSql, getTransferFileFormat  } from "../src/backend/db-transfer.js";
+import {  resolveRuntimeDbPath  } from "../src/backend/db.js";
 
 function timestamp() {
   const now = new Date();

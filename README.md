@@ -32,63 +32,52 @@ Stay tuned
 
 ### 1. Prepare the Database
 
-Download and unzip the raw dataset, then convert it to SQLite:
+You have two options for initializing the database:
 
+**Option A: Build from Raw Dataset (Recommended)**
+If you downloaded the raw `jsonl` dataset, place the unzipped files inside a folder named `dataset/` at the project root. Then dynamically compile the database:
 ```bash
-# Convert raw jsonl data / sql data
-
-# Place the resulting .SQL file at the expected path:
-mv dashboard.sqlite backend/data/dashboard.sqlite
-
-
+npm run db:reset
 ```
 
-The backend expects the database at `backend/data/dashboard.sqlite`.
+**Option B: Import the Pre-Analyzed V1 SQL Dump**
+If you downloaded the `dashboard.sql` plain-text dump instead, you MUST compile it securely into the V2 SQLite binary format! Place `dashboard.sql` inside the `data/` folder and run:
+```bash
+# 1. Delete any auto-generated corrupt binaries
+rm -f data/dashboard.sqlite
+
+# 2. Compile the 4.4GB text dump heavily into a binary SQLite database
+sqlite3 data/dashboard.sqlite < data/dashboard.sql
+
+# 3. Patch the legacy V1 data to strictly support V2.0.0 analytics
+sqlite3 data/dashboard.sqlite < data/patch-v1-to-v2.sql
+```
 
 ### 2. Run the Application
 
-**1. Start the backend**
+The frontend and backend have been unified into a seamless, high-performance Vite orchestrator. You no longer need to jump between directories or run Python servers!
 
+For Production:
 ```bash
-cd backend
-npm start
+npm install
+npm run build && npm run start
+```
+For Development:
+```bash
+npm run dev
 ```
 
-The backend runs on `http://127.0.0.1:3000`.
-
-**2. Serve the frontend** (in a second terminal)
-
-```bash
-cd frontend
-python3 -m http.server 8080
-```
-
-Then open `http://127.0.0.1:8080` in your browser.
-
-The frontend is preconfigured to call the backend at `http://127.0.0.1:3000/api`.
+The unified orchestrated server will boot automatically. Open your browser to the local URL explicitly printed in your terminal (usually `http://127.0.0.1:$PORT`).
 
 ## Notes
-
-- No frontend build step required — plain HTML/CSS/JS.
-- If `backend/node_modules` is missing, install dependencies:
-```bash
-  cd backend
-  npm install
-```
-- For development mode with hot reload:
-```bash
-  cd backend
-  npm run dev
-```
+- There is no manual frontend build step required during development. Vite cleanly orchestrates HMR under the hood.
+- To physically compile a final production bundle and boot it, run `npm run build` followed by `npm run start`.
 
 ## Environment
 
-Backend config is loaded from `backend/.env`. Default values:
+Configuration is securely loaded from the `.env` file located in the project root.
 
-```env
-PORT=3000
-CORS_ORIGIN=*
-SQLITE_PATH=data/dashboard.sqlite
-AUDIT_DATASET_DIR=dataset
-GEO_ROOT_PATH=seed/geo
+Copy from example:
+```bash
+cp .env.example .env
 ```

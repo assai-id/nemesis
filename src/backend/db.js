@@ -1,10 +1,10 @@
-const fs = require("fs");
-const path = require("path");
-const Database = require("better-sqlite3");
-const { DATA_DIR, DB_PATH } = require("./config");
+import fs from 'node:fs';
+import path from 'node:path';
+import Database from 'better-sqlite3';
+import { DATA_DIR, DB_PATH } from './config.js';
 
-const SQLITE_EXTENSIONS = new Set([".sqlite", ".sqlite3", ".db"]);
-const REQUIRED_SCHEMA_TABLES = ["packages", "regions"];
+const SQLITE_EXTENSIONS = new Set(['.sqlite', '.sqlite3', '.db']);
+const REQUIRED_SCHEMA_TABLES = ['packages', 'regions'];
 
 function isSqliteFile(fileName) {
   const extension = path.extname(fileName).toLowerCase();
@@ -68,13 +68,13 @@ function openDatabase() {
   const runtimeDbPath = resolveRuntimeDbPath();
 
   const db = new Database(runtimeDbPath);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
 
   return db;
 }
 
-module.exports = {
+export {
   DB_PATH,
   hasApplicationSchema,
   listExistingSqliteFiles,

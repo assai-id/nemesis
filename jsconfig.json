@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "allowJs": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "strict": false
+  },
+  "include": ["src/**/*"]
+}

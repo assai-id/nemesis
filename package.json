@@ -1,0 +1,35 @@
+{
+  "name": "nemesis",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development node worker.js",
+    "start": "NODE_ENV=production node worker.js",
+    "build": "vite build",
+    "db:reset": "node scripts/reset-db.js",
+    "db:export": "node scripts/export-db.js",
+    "db:import": "node scripts/import-db.js",
+    "lint": "eslint src/",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "hpp": "^0.2.3",
+    "maplibre-gl": "^5.0.0",
+    "morgan": "^1.10.1",
+    "preact": "^10.25.4",
+    "rotating-file-stream": "^3.2.9"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.3",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "vite": "^6.0.0"
+  }
+}
