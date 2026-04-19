@@ -1,6 +1,9 @@
 # Dependencies
 **/node_modules/
 
+# Environment variables
+backend/.env
+
 # Local runtime data (SQLite)
 backend/data/
 backend/dataset/

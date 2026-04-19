@@ -1,5 +1,22 @@
 const { DEFAULT_REGION_PAGE_SIZE, MAX_REGION_PAGE_SIZE } = require("./config");
 
+/**
+ * Whitelist of allowed scope tables/columns to prevent SQL injection
+ * via template literal interpolation in queryPackagesPage().
+ */
+const VALID_SCOPES = {
+  package_regions: { table: "package_regions", column: "package_regions.region_key" },
+  package_provinces: { table: "package_provinces", column: "package_provinces.province_key" },
+};
+
+function getValidatedScope(scopeTable, scopeColumn) {
+  const scope = VALID_SCOPES[scopeTable];
+  if (!scope) {
+    throw new Error(`Invalid scope table: ${scopeTable}`);
+  }
+  return scope;
+}
+
 const LEGEND_COLORS = ["#7b86a3", "#b5a882", "#d4a999", "#8b7332", "#a83c2e"];
 const VALID_OWNER_TYPES = ["kabkota", "provinsi", "central", "other"];
 const VALID_SEVERITIES = ["low", "med", "high", "absurd"];
@@ -467,12 +484,13 @@ function mapPackageRow(row) {
 }
 
 function queryPackagesPage(db, scopeTable, scopeColumn, scopeKey, normalizedQuery, options = {}) {
-  const whereClause = buildPackagesWhereClause(scopeColumn, scopeKey, normalizedQuery, options);
+  const scope = getValidatedScope(scopeTable, scopeColumn);
+  const whereClause = buildPackagesWhereClause(scope.column, scopeKey, normalizedQuery, options);
   const countRow = db
     .prepare(`
       SELECT COUNT(*) AS total
-      FROM ${scopeTable}
-      INNER JOIN packages ON packages.id = ${scopeTable}.package_id
+      FROM ${scope.table}
+      INNER JOIN packages ON packages.id = ${scope.table}.package_id
       WHERE ${whereClause.sql}
     `)
     .get(...whereClause.params);
@@ -506,8 +524,8 @@ function queryPackagesPage(db, scopeTable, scopeColumn, scopeKey, normalizedQuer
         packages.is_priority,
         packages.is_flagged,
         packages.mapped_region_count
-      FROM ${scopeTable}
-      INNER JOIN packages ON packages.id = ${scopeTable}.package_id
+      FROM ${scope.table}
+      INNER JOIN packages ON packages.id = ${scope.table}.package_id
       WHERE ${whereClause.sql}
       ORDER BY
         packages.is_priority DESC,

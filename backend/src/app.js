@@ -1,8 +1,17 @@
 const express = require("express");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const { CORS_ORIGIN } = require("./config");
 const { getBootstrapPayload, getOwnerPackages, getRegionPackages, getProvincePackages } = require("./dashboard-repository");
 
+/**
+ * CORS origin resolution.
+ *
+ * By default CORS_ORIGIN="*" allows all origins — this is intentional
+ * because the dashboard is a public-facing tool (assai.id/nemesis).
+ * Set CORS_ORIGIN="https://assai.id,https://www.assai.id" to restrict
+ * in production.
+ */
 function resolveCorsOrigin() {
   if (CORS_ORIGIN === "*") {
     return "*";
@@ -22,6 +31,17 @@ function createApp(db) {
     })
   );
   app.use(express.json());
+
+  // Rate limiting: 100 requests per minute per IP
+  app.use(
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: "Too many requests, please try again later." },
+    })
+  );
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
