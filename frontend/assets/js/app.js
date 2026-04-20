@@ -1,5 +1,63 @@
 (() => {
   const API_BASE_URL = (window.DASHBOARD_API_BASE_URL || "http://127.0.0.1:3000/api").replace(/\/$/, "");
+  const BOOTSTRAP_CACHE_KEY = "nemesis:bootstrap:v1";
+
+  function readBootstrapCache() {
+    try {
+      const raw = window.sessionStorage.getItem(BOOTSTRAP_CACHE_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || !parsed.body) {
+        return null;
+      }
+      return parsed;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeBootstrapCache(entry) {
+    try {
+      window.sessionStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(entry));
+    } catch (_error) {
+      // sessionStorage unavailable (private mode) or quota exceeded; ignore.
+    }
+  }
+
+  async function fetchBootstrapPayload() {
+    const cached = readBootstrapCache();
+    const headers = {};
+    if (cached && cached.etag) {
+      headers["If-None-Match"] = cached.etag;
+    }
+    if (cached && cached.lastModified) {
+      headers["If-Modified-Since"] = cached.lastModified;
+    }
+    const response = await fetch(`${API_BASE_URL}/bootstrap`, { headers });
+    if (response.status === 304 && cached) {
+      return cached.body;
+    }
+    const text = await response.text();
+    let payload = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch (_error) {
+        throw new Error("Invalid JSON response from /bootstrap");
+      }
+    }
+    if (!response.ok) {
+      throw new Error(payload && payload.error ? payload.error : `Request failed (${response.status})`);
+    }
+    const etag = response.headers.get("ETag");
+    const lastModified = response.headers.get("Last-Modified");
+    if (etag || lastModified) {
+      writeBootstrapCache({ etag, lastModified, body: payload });
+    }
+    return payload;
+  }
 
   if (!window.maplibregl || !window.AuditMap) {
     console.error("MapLibre GL or AuditMap failed to load.");
@@ -1374,7 +1432,7 @@
     renderBootstrapLoading();
 
     try {
-      dashboardData = normalizeDashboardData(await fetchJson("/bootstrap"));
+      dashboardData = normalizeDashboardData(await fetchBootstrapPayload());
       regionsByKey = new Map(dashboardData.regions.map((region) => [region.regionKey, region]));
       provincesByKey = new Map(dashboardData.provinceView.provinces.map((province) => [province.provinceKey, province]));
       renderKpis();
