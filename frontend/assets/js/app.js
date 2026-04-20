@@ -1,6 +1,6 @@
 (() => {
   const API_BASE_URL = (window.DASHBOARD_API_BASE_URL || "http://127.0.0.1:3000/api").replace(/\/$/, "");
-  const BOOTSTRAP_CACHE_KEY = "nemesis:bootstrap:v1";
+  const BOOTSTRAP_CACHE_KEY = `nemesis:bootstrap:v1:${API_BASE_URL}`;
 
   function readBootstrapCache() {
     try {
@@ -32,9 +32,6 @@
     if (cached && cached.etag) {
       headers["If-None-Match"] = cached.etag;
     }
-    if (cached && cached.lastModified) {
-      headers["If-Modified-Since"] = cached.lastModified;
-    }
     const response = await fetch(`${API_BASE_URL}/bootstrap`, { headers });
     if (response.status === 304 && cached) {
       return cached.body;
@@ -52,9 +49,8 @@
       throw new Error(payload && payload.error ? payload.error : `Request failed (${response.status})`);
     }
     const etag = response.headers.get("ETag");
-    const lastModified = response.headers.get("Last-Modified");
-    if (etag || lastModified) {
-      writeBootstrapCache({ etag, lastModified, body: payload });
+    if (etag) {
+      writeBootstrapCache({ etag, body: payload });
     }
     return payload;
   }
