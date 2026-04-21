@@ -1,0 +1,254 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+/* ========================
+   PANTAU — Civic Theme
+   Merah bendera + putih + abu
+   ======================== */
+
+:root,
+[data-theme="light"] {
+  /* Permukaan */
+  --bg: #fafafa;
+  --bg-muted: #f4f4f5;
+  --surface: #ffffff;
+  --surface-alt: #f9fafb;
+  --surface-hover: #f3f4f6;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* Teks */
+  --text: #111827;
+  --text-muted: #4b5563;
+  --text-subtle: #6b7280;
+  --text-faint: #9ca3af;
+
+  /* Warna identitas RI */
+  --primary: #ce1126;
+  --primary-hover: #a8101f;
+  --primary-active: #8b0d19;
+  --primary-soft: #fee2e2;
+  --primary-softer: #fef2f2;
+  --on-primary: #ffffff;
+
+  /* Aksen netral */
+  --slate: #1f2937;
+  --slate-soft: #f1f5f9;
+
+  /* Semantik */
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+
+  /* Severity */
+  --sev-low: #64748b;
+  --sev-med: #b45309;
+  --sev-high: #b91c1c;
+  --sev-absurd: #7f1d1d;
+
+  /* Kontrol di atas peta */
+  --glass: rgba(255, 255, 255, 0.96);
+  --glass-strong: #ffffff;
+  --glass-border: rgba(17, 24, 39, 0.08);
+
+  /* Bayangan (minimal, flat) */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* Ring fokus */
+  --ring: 0 0 0 3px rgba(206, 17, 38, 0.25);
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --bg-muted: #111111;
+  --surface: #171717;
+  --surface-alt: #1c1c1c;
+  --surface-hover: #1f1f1f;
+  --border: #262626;
+  --border-strong: #404040;
+
+  --text: #fafafa;
+  --text-muted: #d4d4d4;
+  --text-subtle: #a3a3a3;
+  --text-faint: #737373;
+
+  --primary: #ef4444;
+  --primary-hover: #f87171;
+  --primary-active: #fca5a5;
+  --primary-soft: rgba(239, 68, 68, 0.16);
+  --primary-softer: rgba(239, 68, 68, 0.08);
+  --on-primary: #ffffff;
+
+  --slate: #e5e7eb;
+  --slate-soft: #1f2937;
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.14);
+
+  --sev-low: #94a3b8;
+  --sev-med: #fbbf24;
+  --sev-high: #f87171;
+  --sev-absurd: #fca5a5;
+
+  --glass: rgba(23, 23, 23, 0.92);
+  --glass-strong: #171717;
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+  --ring: 0 0 0 3px rgba(239, 68, 68, 0.35);
+
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Angka rata rapi di mana pun memakai JetBrains Mono atau class num */
+.num,
+.tabular-nums,
+[data-numeric="true"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Fokus ring konsisten */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 6px;
+}
+
+/* ========================
+   Scrollbar
+   ======================== */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ========================
+   MapLibre
+   ======================== */
+
+.maplibregl-map {
+  background: var(--bg-muted) !important;
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+}
+
+.maplibregl-ctrl-logo {
+  display: none !important;
+}
+
+.maplibregl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Hover card di MapPanel kita kelola via React, jadi sembunyikan default popup tip */
+.audit-popup .maplibregl-popup-tip {
+  display: none !important;
+}
+
+.audit-popup .maplibregl-popup-content {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 12px 14px !important;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 13px;
+  max-width: 280px;
+}
+
+.audit-popup .pt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.audit-popup .popup-sub {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-bottom: 8px;
+}
+
+.audit-popup .pr {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.audit-popup .pr .l {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.audit-popup .pr .v {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-popup .ppb {
+  height: 4px;
+  background: var(--bg-muted);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.audit-popup .ppbf {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
