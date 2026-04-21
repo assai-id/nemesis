@@ -41,7 +41,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 function sortAreas(
   areas: (RegionArea | ProvinceArea)[],
-  key: SortKey
+  key: SortKey,
 ): (RegionArea | ProvinceArea)[] {
   return [...areas].sort((a, b) => {
     let cmp = 0;
@@ -115,7 +115,7 @@ export default function AreaListTab() {
       areas = areas.filter(
         (a) =>
           a.displayName.toLowerCase().includes(q) ||
-          a.provinceName.toLowerCase().includes(q)
+          a.provinceName.toLowerCase().includes(q),
       );
     }
     return sortAreas(areas, sortKey) as RegionArea[];
@@ -300,7 +300,9 @@ export default function AreaListTab() {
                     color: active ? pantau.onPrimary : pantau.textMuted,
                     border: `1px solid ${active ? pantau.primary : pantau.border}`,
                     "&:hover": {
-                      bgcolor: active ? pantau.primaryHover : pantau.surfaceHover,
+                      bgcolor: active
+                        ? pantau.primaryHover
+                        : pantau.surfaceHover,
                     },
                   }}
                 />
@@ -309,7 +311,7 @@ export default function AreaListTab() {
           </Stack>
         ) : null}
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Typography
             sx={{ fontSize: 12, color: pantau.textMuted, whiteSpace: "nowrap" }}
           >
@@ -433,7 +435,10 @@ function RegionTable({
               <th style={{ textAlign: "right" }}>Potensi pemborosan</th>
               <Box
                 component="th"
-                sx={{ textAlign: "right", display: { xs: "none", xl: "table-cell" } }}
+                sx={{
+                  textAlign: "right",
+                  display: { xs: "none", xl: "table-cell" },
+                }}
               >
                 Total pagu
               </Box>
@@ -510,8 +515,7 @@ function RegionTable({
                   borderRadius: 1,
                   display: "grid",
                   placeItems: "center",
-                  bgcolor:
-                    idx < 3 ? pantau.primarySofter : pantau.surfaceAlt,
+                  bgcolor: idx < 3 ? pantau.primarySofter : pantau.surfaceAlt,
                   color: idx < 3 ? pantau.primary : pantau.textMuted,
                   fontSize: 12,
                   fontWeight: 700,
@@ -537,9 +541,8 @@ function RegionTable({
                     color: pantau.textSubtle,
                   }}
                 >
-                  {area.provinceName} ·{" "}
-                  {formatNumber(area.totalPackages)} paket (
-                  {formatNumber(area.totalPriorityPackages)} prioritas)
+                  {area.provinceName} · {formatNumber(area.totalPackages)} paket
+                  ({formatNumber(area.totalPriorityPackages)} prioritas)
                 </Typography>
               </Box>
               <Typography
