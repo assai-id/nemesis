@@ -1245,6 +1245,11 @@
   function setSearch(value) {
     state.search = value;
     renderSidebarContent();
+    const input = dom.sidebarContent.querySelector('.sw input');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
   }
 
   function setSort(value) {
