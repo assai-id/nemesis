@@ -33,10 +33,14 @@
     mapFilters: document.getElementById("mf"),
     tabs: document.getElementById("tabs"),
     legend: document.getElementById("legend"),
+    sidebarFilters: document.getElementById("sidebar-filters"),
     sidebarContent: document.getElementById("sbc"),
     modal: document.getElementById("rupModal"),
     modalTop: document.getElementById("modalTop"),
     modalBody: document.getElementById("modalBody"),
+    modalSummary: document.getElementById("modalSummary"),
+    modalFilters: document.getElementById("modalFilters"),
+    modalTable: document.getElementById("modalTable"),
   };
 
   if (Object.values(dom).some((element) => !element)) {
@@ -150,10 +154,10 @@
   function formatCompactCurrency(value) {
     const amount = Number(value) || 0;
     const abs = Math.abs(amount);
-    if (abs >= 1e12) return `${(amount / 1e12).toFixed(amount % 1e12 === 0 ? 0 : 1)} T`;
-    if (abs >= 1e9) return `${(amount / 1e9).toFixed(amount % 1e9 === 0 ? 0 : 1)} B`;
-    if (abs >= 1e6) return `${(amount / 1e6).toFixed(amount % 1e6 === 0 ? 0 : 1)} M`;
-    if (abs >= 1e3) return `${(amount / 1e3).toFixed(amount % 1e3 === 0 ? 0 : 1)} K`;
+    if (abs >= 1e12) return `${(amount / 1e12).toFixed(1).replace(/\.0$/, "")} T`;
+    if (abs >= 1e9)  return `${(amount / 1e9).toFixed(1).replace(/\.0$/, "")} M`;
+    if (abs >= 1e6)  return `${(amount / 1e6).toFixed(1).replace(/\.0$/, "")} Jt`;
+    if (abs >= 1e3)  return `${(amount / 1e3).toFixed(1).replace(/\.0$/, "")} Rb`;
     return `${amount.toFixed(0)}`;
   }
 
@@ -360,7 +364,24 @@
     dom.sidebarContent.innerHTML = `<div class="panel-msg${isError ? " error" : ""}">${escapeHtml(message)}</div>`;
   }
 
-  function renderModalState(title, message, isError) {
+  function renderModalState(title, message, isError = false) {
+    const cls = isError ? " error" : "";
+    dom.modalTable.innerHTML = `<div class="modal-state${cls}"><strong>${escapeHtml(title)}</strong><br>${escapeHtml(message)}</div>`;
+  }
+
+  function renderModalSkeleton() {
+    const rows = Array.from({ length: 8 }, () =>
+      `<tr>${Array.from({ length: 7 }, () =>
+        `<td><div class="skel" style="height:12px;border-radius:4px;background:rgba(255,255,255,0.05);animation:skelPulse 1.5s infinite;"></div></td>`
+      ).join("")}</tr>`
+    ).join("");
+    dom.modalTable.innerHTML =
+      `<style>@keyframes skelPulse{0%,100%{opacity:0.5}50%{opacity:1}}</style>` +
+      `<div class="modal-cnt">Memuat paket...</div>` +
+      `<table class="rtbl"><thead><tr><th>ID</th><th>Nama Paket</th><th>Pemilik</th><th>Satker / Lokasi</th><th>Pagu</th><th>Severity</th><th>Alasan</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function renderModalStateStatic(title, message, isError) {
     dom.modalTop.innerHTML =
       `<div class="modal-top-row"><div><h2>${escapeHtml(title)}</h2><div class="msub">Audit paket pengadaan &middot; TA 2026</div></div>` +
       `<div style="display:flex;gap:8px;align-items:center"><button class="modal-close" onclick="${actionCall("closeRegionModal")}">&#10005; Tutup</button></div></div>`;
@@ -425,11 +446,11 @@
         multiLocationPackages: 0,
       },
       legend: payload.legend || { zeroColor: "#243155", ranges: [] },
-      geo: payload.geo || { type: "FeatureCollection", features: [] },
+      geo: null, // Diambil secara terpisah dari /api/geo/regions
       regions: Array.isArray(payload.regions) ? payload.regions : [],
       provinceView: {
         legend: (payload.provinceView && payload.provinceView.legend) || { zeroColor: "#243155", ranges: [] },
-        geo: (payload.provinceView && payload.provinceView.geo) || { type: "FeatureCollection", features: [] },
+        geo: null, // Diambil secara terpisah dari /api/geo/provinces
         provinces:
           payload.provinceView && Array.isArray(payload.provinceView.provinces) ? payload.provinceView.provinces : [],
       },
@@ -614,14 +635,14 @@
     }).join("");
   }
 
-  function sortControl() {
+  function renderSidebarFilters() {
     const placeholder = isCentralOwnerMode()
       ? "Cari kementerian/lembaga..."
       : isProvinceView()
       ? "Cari provinsi..."
       : "Cari kabupaten/kota...";
 
-    return (
+    dom.sidebarFilters.innerHTML =
       `<div class="sw"><span class="si">&#128269;</span><input type="text" placeholder="${escapeAttr(
         placeholder
       )}" value="${escapeAttr(state.search)}" oninput="${actionExpr("dashboardActions.setSearch(this.value)")}" /></div>` +
@@ -630,8 +651,7 @@
       `<option value="priority"${state.sortBy === "priority" ? " selected" : ""}>Paket Prioritas</option>` +
       `<option value="packages"${state.sortBy === "packages" ? " selected" : ""}>Total Paket</option>` +
       `<option value="budget"${state.sortBy === "budget" ? " selected" : ""}>Total Pagu</option>` +
-      `</select></div>`
-    );
+      `</select></div>`;
   }
 
   function renderOwnerSidebarContent() {
@@ -639,14 +659,13 @@
 
     if (!owners.length) {
       dom.sidebarContent.innerHTML =
-        sortControl() + `<div class="panel-msg">Tidak ada kementerian/lembaga yang cocok dengan filter saat ini.</div>`;
+        `<div class="panel-msg">Tidak ada kementerian/lembaga yang cocok dengan filter saat ini.</div>`;
       return;
     }
 
     const maxWaste = Math.max(...owners.map((owner) => owner.totalPotentialWaste), 1);
 
     dom.sidebarContent.innerHTML =
-      sortControl() +
       owners
         .map((owner, index) => {
           const selectedClass =
@@ -695,7 +714,6 @@
 
     if (!areas.length) {
       dom.sidebarContent.innerHTML =
-        sortControl() +
         `<div class="panel-msg">Tidak ada ${escapeHtml(
           isProvinceView() ? "provinsi" : "region"
         )} yang cocok dengan filter saat ini.</div>`;
@@ -710,7 +728,6 @@
     const ownerLabel = activeSidebarOwnerLabel();
 
     dom.sidebarContent.innerHTML =
-      sortControl() +
       areaEntries
         .map(({ area, metrics }, index) => {
           const areaKey = getAreaKey(area);
@@ -820,8 +837,39 @@
     );
   }
 
-  function renderGeoLayer(fitToBounds) {
-    const geo = getActiveGeo();
+  async function fetchGeoIfNeeded(isProvView) {
+    if (isProvView) {
+      if (!dashboardData.provinceView.geo) {
+        setMapStatus("Mengunduh data peta provinsi...", false);
+        try {
+          dashboardData.provinceView.geo = await fetchJson("/geo/provinces");
+        } catch (e) {
+          setMapStatus("Gagal memuat peta provinsi.", true);
+          return null;
+        }
+      }
+      return dashboardData.provinceView.geo;
+    } else {
+      if (!dashboardData.geo) {
+        setMapStatus("Mengunduh data peta wilayah...", false);
+        try {
+          dashboardData.geo = await fetchJson("/geo/regions");
+        } catch (e) {
+          setMapStatus("Gagal memuat peta wilayah.", true);
+          return null;
+        }
+      }
+      return dashboardData.geo;
+    }
+  }
+
+  async function renderGeoLayer(fitToBounds) {
+    const isProvView = isProvinceView();
+    clearMapStatus();
+    dom.mapRoot.classList.add("map-loading");
+    
+    const geo = await fetchGeoIfNeeded(isProvView);
+    dom.mapRoot.classList.remove("map-loading");
 
     if (!geo || !Array.isArray(geo.features) || !geo.features.length) {
       setMapStatus("Tidak ada geometri untuk mode peta saat ini.", true);
@@ -836,7 +884,7 @@
         getPopupHtml: (areaKey) => popupHtml(getActiveAreaByKey(areaKey)),
         onAreaClick: openAreaModal,
         fitBounds: fitToBounds,
-        isProvinceView: isProvinceView(),
+        isProvinceView: isProvView,
       },
       clearMapStatus
     );
@@ -917,7 +965,7 @@
       )}</div></div>` +
       `<div style="display:flex;gap:8px;align-items:center"><span class="tbd ${areaBadgeClass(region)}">${escapeHtml(
         region.regionType
-      )}</span><button class="modal-close" onclick="${actionCall(
+      )}</span><a class="btn-csv" href="${escapeAttr(`${API_BASE_URL}/regions/${encodeURIComponent(region.regionKey)}/packages.csv?ownerType=${state.modal.ownerType}&severity=${state.modal.severity}${state.modal.priorityOnly ? '&priorityOnly=true' : ''}`)}">⬇ CSV</a><button class="modal-close" onclick="${actionCall(
         "closeRegionModal"
       )}">&#10005; Tutup</button></div></div>` +
       `<div class="modal-kpis">` +
@@ -934,7 +982,7 @@
         formatCompactCurrency(region.totalBudget)
       )}</div></div></div>`;
 
-    dom.modalBody.innerHTML =
+    dom.modalSummary.innerHTML =
       `<div class="modal-summary-grid">` +
       `<div class="mini-stat"><span>Kementerian/Lembaga</span><strong>${escapeHtml(
         formatNumber(ownerTypeCount(region, "central"))
@@ -952,25 +1000,9 @@
       `<div class="mini-stat"><span>Severity Absurd</span><strong>${escapeHtml(
         formatNumber(region.severityCounts.absurd)
       )}</strong></div>` +
-      `</div>` +
-      `<div class="modal-filters">` +
-      `<input type="text" placeholder="Cari paket, lembaga, atau satker..." value="${escapeAttr(
-        state.modal.search
-      )}" oninput="${actionExpr("dashboardActions.setModalSearch(this.value)")}" />` +
-      `<select onchange="${actionExpr("dashboardActions.setModalOwnerType(this.value)")}" aria-label="Filter jenis pemilik">` +
-      `<option value="">Semua Pemilik</option><option value="central"${state.modal.ownerType === "central" ? " selected" : ""}>Kementerian/Lembaga</option>` +
-      `<option value="provinsi"${state.modal.ownerType === "provinsi" ? " selected" : ""}>Pemprov</option><option value="kabkota"${
-        state.modal.ownerType === "kabkota" ? " selected" : ""
-      }>Pemkot</option><option value="other"${
-        state.modal.ownerType === "other" ? " selected" : ""
-      }>Others</option></select>` +
-      `<select onchange="${actionExpr("dashboardActions.setModalSeverity(this.value)")}" aria-label="Filter severity">${renderSeverityFilterOptions(
-        state.modal.severity
-      )}</select>` +
-      `<label class="chk"><input type="checkbox" ${state.modal.priorityOnly ? "checked" : ""} onchange="${actionExpr(
-        "dashboardActions.setModalPriorityOnly(this.checked)"
-      )}" /> Hanya prioritas</label>` +
-      `</div>` +
+      `</div>`;
+
+    dom.modalTable.innerHTML =
       `<div class="modal-cnt">Menampilkan ${escapeHtml(formatNumber(payload.items.length))} dari ${escapeHtml(
         formatNumber(payload.pagination.totalItems)
       )} paket pada area ini</div>` +
@@ -984,7 +1016,7 @@
 
     dom.modalTop.innerHTML =
       `<div class="modal-top-row"><div><h2>${escapeHtml(province.displayName)}</h2><div class="msub">Paket pemprov pada provinsi ini &middot; TA 2026</div></div>` +
-      `<div style="display:flex;gap:8px;align-items:center"><span class="tbd ${areaBadgeClass(province)}">Provinsi</span><button class="modal-close" onclick="${actionCall(
+      `<div style="display:flex;gap:8px;align-items:center"><span class="tbd ${areaBadgeClass(province)}">Provinsi</span><a class="btn-csv" href="${escapeAttr(`${API_BASE_URL}/provinces/${encodeURIComponent(province.provinceKey)}/packages.csv?severity=${state.modal.severity}${state.modal.priorityOnly ? '&priorityOnly=true' : ''}`)}">⬇ CSV</a><button class="modal-close" onclick="${actionCall(
         "closeRegionModal"
       )}">&#10005; Tutup</button></div></div>` +
       `<div class="modal-kpis">` +
@@ -1001,7 +1033,7 @@
         formatCompactCurrency(province.totalBudget)
       )}</div></div></div>`;
 
-    dom.modalBody.innerHTML =
+    dom.modalSummary.innerHTML =
       `<div class="modal-summary-grid">` +
       `<div class="mini-stat"><span>Paket Flagged</span><strong>${escapeHtml(
         formatNumber(province.totalFlaggedPackages)
@@ -1021,18 +1053,9 @@
       `<div class="mini-stat"><span>Max Risk Score</span><strong>${escapeHtml(
         formatNumber(province.maxRiskScore)
       )}</strong></div>` +
-      `</div>` +
-      `<div class="modal-filters">` +
-      `<input type="text" placeholder="Cari paket, lembaga, atau satker..." value="${escapeAttr(
-        state.modal.search
-      )}" oninput="${actionExpr("dashboardActions.setModalSearch(this.value)")}" />` +
-      `<select onchange="${actionExpr("dashboardActions.setModalSeverity(this.value)")}" aria-label="Filter severity">${renderSeverityFilterOptions(
-        state.modal.severity
-      )}</select>` +
-      `<label class="chk"><input type="checkbox" ${state.modal.priorityOnly ? "checked" : ""} onchange="${actionExpr(
-        "dashboardActions.setModalPriorityOnly(this.checked)"
-      )}" /> Hanya prioritas</label>` +
-      `</div>` +
+      `</div>`;
+
+    dom.modalTable.innerHTML =
       `<div class="modal-cnt">Menampilkan ${escapeHtml(formatNumber(payload.items.length))} dari ${escapeHtml(
         formatNumber(payload.pagination.totalItems)
       )} paket pemprov pada provinsi ini</div>` +
@@ -1048,7 +1071,7 @@
       `<div class="modal-top-row"><div><h2>${escapeHtml(owner.ownerName)}</h2><div class="msub">${escapeHtml(
         `${ownerTypeLabel(owner.ownerType)} | Audit paket nasional TA 2026`
       )}</div></div>` +
-      `<div style="display:flex;gap:8px;align-items:center"><span class="tbd bc">K/L</span><button class="modal-close" onclick="${actionCall(
+      `<div style="display:flex;gap:8px;align-items:center"><span class="tbd bc">K/L</span><a class="btn-csv" href="${escapeAttr(`${API_BASE_URL}/owners/packages.csv?ownerType=${encodeURIComponent(owner.ownerType)}&ownerName=${encodeURIComponent(owner.ownerName)}&severity=${state.modal.severity}${state.modal.priorityOnly ? '&priorityOnly=true' : ''}`)}">⬇ CSV</a><button class="modal-close" onclick="${actionCall(
         "closeRegionModal"
       )}">&#10005; Tutup</button></div></div>` +
       `<div class="modal-kpis">` +
@@ -1065,7 +1088,7 @@
         formatCompactCurrency(owner.totalBudget)
       )}</div></div></div>`;
 
-    dom.modalBody.innerHTML =
+    dom.modalSummary.innerHTML =
       `<div class="modal-summary-grid">` +
       `<div class="mini-stat"><span>Paket Flagged</span><strong>${escapeHtml(
         formatNumber(owner.totalFlaggedPackages)
@@ -1079,18 +1102,9 @@
       `<div class="mini-stat"><span>Severity Absurd</span><strong>${escapeHtml(
         formatNumber(owner.severityCounts.absurd)
       )}</strong></div>` +
-      `</div>` +
-      `<div class="modal-filters">` +
-      `<input type="text" placeholder="Cari paket atau satker..." value="${escapeAttr(
-        state.modal.search
-      )}" oninput="${actionExpr("dashboardActions.setModalSearch(this.value)")}" />` +
-      `<select onchange="${actionExpr("dashboardActions.setModalSeverity(this.value)")}" aria-label="Filter severity">${renderSeverityFilterOptions(
-        state.modal.severity
-      )}</select>` +
-      `<label class="chk"><input type="checkbox" ${state.modal.priorityOnly ? "checked" : ""} onchange="${actionExpr(
-        "dashboardActions.setModalPriorityOnly(this.checked)"
-      )}" /> Hanya prioritas</label>` +
-      `</div>` +
+      `</div>`;
+
+    dom.modalTable.innerHTML =
       `<div class="modal-cnt">Menampilkan ${escapeHtml(formatNumber(payload.items.length))} dari ${escapeHtml(
         formatNumber(payload.pagination.totalItems)
       )} paket pada pemilik ini</div>` +
@@ -1112,23 +1126,32 @@
     renderRegionModalContent(payload);
   }
 
-  async function loadAreaPackages() {
-    if (
-      (state.modal.areaType === "owner" && (!state.modal.ownerType || !state.modal.ownerName)) ||
-      (state.modal.areaType !== "owner" && !state.modal.areaKey)
-    ) {
-      return;
-    }
+  function renderModalFilters() {
+    const isOwner = state.modal.areaType === "owner";
+    const isProv = state.modal.areaType === "province";
+    const showOwnerSelect = !isOwner && !isProv;
 
+    const ownerSelectHtml = showOwnerSelect
+      ? `<select onchange="${actionExpr("dashboardActions.setModalOwnerType(this.value)")}" aria-label="Filter jenis pemilik">` +
+        `<option value="">Semua Pemilik</option><option value="central"${state.modal.ownerType === "central" ? " selected" : ""}>Kementerian/Lembaga</option>` +
+        `<option value="provinsi"${state.modal.ownerType === "provinsi" ? " selected" : ""}>Pemprov</option><option value="kabkota"${state.modal.ownerType === "kabkota" ? " selected" : ""}>Pemkot</option><option value="other"${state.modal.ownerType === "other" ? " selected" : ""}>Others</option></select>`
+      : "";
+
+    dom.modalFilters.innerHTML =
+      `<div class="modal-filters">` +
+      `<input type="text" placeholder="${escapeAttr(isOwner ? "Cari paket atau satker..." : "Cari paket, lembaga, atau satker...")}" value="${escapeAttr(state.modal.search)}" oninput="${actionExpr("dashboardActions.setModalSearch(this.value)")}" />` +
+      ownerSelectHtml +
+      `<select onchange="${actionExpr("dashboardActions.setModalSeverity(this.value)")}" aria-label="Filter severity">${renderSeverityFilterOptions(state.modal.severity)}</select>` +
+      `<label class="chk"><input type="checkbox" ${state.modal.priorityOnly ? "checked" : ""} onchange="${actionExpr("dashboardActions.setModalPriorityOnly(this.checked)")}" /> Hanya prioritas</label>` +
+      `</div>`;
+  }
+
+  async function loadAreaPackages() {
     state.modalRequestId += 1;
     const requestId = state.modalRequestId;
-    renderModalState(
-      state.modal.areaType === "owner" ? "Memuat pemilik..." : "Memuat area...",
-      state.modal.areaType === "owner"
-        ? "Mengambil paket dari pemilik terpilih..."
-        : "Mengambil paket dari backend audit...",
-      false
-    );
+
+    renderModalSkeleton();
+
 
     const params = new URLSearchParams({
       page: String(state.modal.page),
@@ -1190,16 +1213,20 @@
       page: 1,
       pageSize: 25,
       search: "",
-      ownerType: "",
+      ownerType: state.mapFilter === "central" ? "central" : "",
       severity: "",
       priorityOnly: false,
     };
 
-    refreshMapStyles();
-    renderSidebarContent();
+    renderModalFilters();
     dom.modal.classList.add("open");
     document.body.style.overflow = "hidden";
     loadAreaPackages();
+
+    setTimeout(() => {
+      refreshMapStyles();
+      renderSidebarContent();
+    }, 10);
   }
 
   function openOwnerModal(ownerName, ownerType) {
@@ -1218,11 +1245,15 @@
       priorityOnly: false,
     };
 
-    refreshMapStyles();
-    renderSidebarContent();
+    renderModalFilters();
     dom.modal.classList.add("open");
     document.body.style.overflow = "hidden";
     loadAreaPackages();
+
+    setTimeout(() => {
+      refreshMapStyles();
+      renderSidebarContent();
+    }, 10);
   }
 
   function closeRegionModal() {
@@ -1238,12 +1269,21 @@
       severity: "",
       priorityOnly: false,
     };
+    state.selectedAreaKey = null;
+    state.selectedOwnerKey = null;
+    
     dom.modal.classList.remove("open");
     document.body.style.overflow = "";
+
+    setTimeout(() => {
+      refreshMapStyles();
+      renderSidebarContent();
+    }, 10);
   }
 
   function setSearch(value) {
     state.search = value;
+    state.page = 1;
     renderSidebarContent();
   }
 
@@ -1262,6 +1302,7 @@
     state.tab = value;
     refreshMapStyles();
     renderTabs();
+    renderSidebarFilters();
     renderSidebarContent();
   }
 
@@ -1280,6 +1321,7 @@
       renderLegend();
       renderFilterChips();
       renderTabs();
+      renderSidebarFilters();
       renderSidebarContent();
       renderGeoLayer(true);
       return;
@@ -1298,13 +1340,18 @@
     refreshMapStyles();
     renderFilterChips();
     renderTabs();
+    renderSidebarFilters();
     renderSidebarContent();
   }
 
+  let modalSearchTimeout = null;
   function setModalSearch(value) {
-    state.modal.search = value;
-    state.modal.page = 1;
-    loadAreaPackages();
+    clearTimeout(modalSearchTimeout);
+    modalSearchTimeout = setTimeout(() => {
+      state.modal.search = value;
+      state.modal.page = 1;
+      loadAreaPackages();
+    }, 400);
   }
 
   function setModalOwnerType(value) {
@@ -1368,21 +1415,33 @@
         closeRegionModal();
       }
     });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && dom.modal.classList.contains("open")) {
+        closeRegionModal();
+      }
+    });
   }
 
   async function bootstrap() {
     renderBootstrapLoading();
 
     try {
+      // 1. Ambil metrik ringkas dulu (sangat cepat)
       dashboardData = normalizeDashboardData(await fetchJson("/bootstrap"));
       regionsByKey = new Map(dashboardData.regions.map((region) => [region.regionKey, region]));
       provincesByKey = new Map(dashboardData.provinceView.provinces.map((province) => [province.provinceKey, province]));
+      
+      // 2. Tampilkan UI seketika
       renderKpis();
       renderLegend();
-      initMap();
       renderFilterChips();
       renderTabs();
+      renderSidebarFilters();
       renderSidebarContent();
+      
+      // 3. Muat peta secara asinkron di latar belakang
+      initMap();
     } catch (error) {
       renderBootstrapError(formatFetchError(error));
     }
