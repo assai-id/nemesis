@@ -513,7 +513,7 @@ function queryPackagesPage(db, scopeTable, scopeColumn, scopeKey, normalizedQuer
         packages.is_priority DESC,
         packages.potential_waste DESC,
         packages.risk_score DESC,
-        COALESCE(packages.budget, 0) DESC,
+        packages.budget DESC,
         packages.inserted_order ASC
       LIMIT ? OFFSET ?
     `)
@@ -574,7 +574,7 @@ function queryOwnerPackagesPage(db, ownerType, ownerName, normalizedQuery) {
         packages.is_priority DESC,
         packages.potential_waste DESC,
         packages.risk_score DESC,
-        COALESCE(packages.budget, 0) DESC,
+        packages.budget DESC,
         packages.inserted_order ASC
       LIMIT ? OFFSET ?
     `)
@@ -606,11 +606,9 @@ function getBootstrapPayload(db) {
       multiLocationPackages: summaryRow.multi_location_packages || 0,
     },
     legend: buildLegend(regions.map((region) => region.totalPotentialWaste)),
-    geo: getJsonAsset(db, "audit_geojson", { type: "FeatureCollection", features: [] }),
     regions,
     provinceView: {
       legend: buildLegend(provinces.map((province) => province.totalPotentialWaste)),
-      geo: getJsonAsset(db, "audit_province_geojson", { type: "FeatureCollection", features: [] }),
       provinces,
     },
     ownerLists: {
@@ -810,9 +808,23 @@ function getOwnerPackages(db, requestQuery) {
   };
 }
 
+function streamGeoJsonAsset(db, res, assetKey) {
+  const row = db.prepare("SELECT json FROM assets WHERE key = ?").get(assetKey);
+  
+  if (!row || !row.json) {
+    res.status(404).json({ type: "FeatureCollection", features: [] });
+    return;
+  }
+  
+  res.setHeader("Content-Type", "application/json");
+  res.send(row.json);
+}
+
 module.exports = {
   getBootstrapPayload,
-  getOwnerPackages,
   getRegionPackages,
   getProvincePackages,
+  getOwnerPackages,
+  streamGeoJsonAsset,
 };
+
