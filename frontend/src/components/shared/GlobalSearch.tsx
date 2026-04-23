@@ -163,18 +163,19 @@ export default function GlobalSearch() {
           }}
         />
       )}
-      renderOption={(props, option) => (
-        <Box
-          component="li"
-          {...props}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.25,
-            py: 1,
-          }}
-          key={option.id}
-        >
+      renderOption={(props, option) => {
+        return (
+          <Box
+            component="li"
+            {...props}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              py: 1,
+            }}
+            key={option.id}
+          >
           <Box
             sx={{
               width: 28,
@@ -235,8 +236,9 @@ export default function GlobalSearch() {
               flexShrink: 0,
             }}
           />
-        </Box>
-      )}
+          </Box>
+        );
+      }}
     />
   );
 }

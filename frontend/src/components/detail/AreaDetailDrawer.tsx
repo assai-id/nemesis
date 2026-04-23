@@ -43,7 +43,11 @@ type Section = "summary" | "packages";
 
 function getHeader(
   areaType: "region" | "province" | "owner",
-  payload: RegionPackagesPayload | ProvincePackagesPayload | OwnerPackagesPayload | null
+  payload:
+    | RegionPackagesPayload
+    | ProvincePackagesPayload
+    | OwnerPackagesPayload
+    | null,
 ): { title: string; sub: string; badge: string } {
   if (!payload) return { title: "Memuat…", sub: "", badge: "" };
   if (areaType === "owner") {
@@ -71,7 +75,11 @@ function getHeader(
 }
 
 function getMetrics(
-  payload: RegionPackagesPayload | ProvincePackagesPayload | OwnerPackagesPayload | null
+  payload:
+    | RegionPackagesPayload
+    | ProvincePackagesPayload
+    | OwnerPackagesPayload
+    | null,
 ) {
   if (!payload) {
     return {
@@ -165,8 +173,7 @@ export default function AreaDetailDrawer() {
           <Stack
             direction="row"
             spacing={1}
-            alignItems="center"
-            sx={{ mb: 0.5, flexWrap: "wrap" }}
+            sx={{ mb: 0.5, flexWrap: "wrap", alignItems: "center" }}
           >
             <Chip
               size="small"
@@ -217,7 +224,10 @@ export default function AreaDetailDrawer() {
             aria-label="Buka di peta"
             sx={{
               color: pantau.textMuted,
-              "&:hover": { color: pantau.primary, bgcolor: pantau.surfaceHover },
+              "&:hover": {
+                color: pantau.primary,
+                bgcolor: pantau.surfaceHover,
+              },
             }}
           >
             <MapRoundedIcon fontSize="small" />
@@ -313,7 +323,7 @@ export default function AreaDetailDrawer() {
               <MetricCard
                 label="Severity high+absurd"
                 value={formatNumber(
-                  metrics.severityCounts.high + metrics.severityCounts.absurd
+                  metrics.severityCounts.high + metrics.severityCounts.absurd,
                 )}
                 sub={`Low ${formatNumber(metrics.severityCounts.low)} · Med ${formatNumber(metrics.severityCounts.med)}`}
               />
@@ -476,9 +486,7 @@ export default function AreaDetailDrawer() {
                   />
                 }
                 label={
-                  <Typography
-                    sx={{ fontSize: 13, color: pantau.textMuted }}
-                  >
+                  <Typography sx={{ fontSize: 13, color: pantau.textMuted }}>
                     Hanya prioritas
                   </Typography>
                 }
