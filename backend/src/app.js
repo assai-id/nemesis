@@ -1,33 +1,17 @@
-"use strict";
-
-/**
- * app.js  (modified)
- *
- * Changes from original:
- *   + import anomaly-repository
- *   + 3 new GET routes under /api/anomaly/*
- *
- * Everything else is identical to the original file.
- * Diff is intentionally minimal to ease review.
- */
-
-const express = require("express");
-const cors = require("cors");
-const { CORS_ORIGIN } = require("./config");
-const {
-  getBootstrapPayload,
-  getOwnerPackages,
-  getRegionPackages,
+"use strict";                                                                                                                   /**                                                              * app.js  (modified — minimal diff)                             *
+ * Added:                                                        *   + import anomaly-repository (4 functions)                   *   + 4 new GET routes under /api/anomaly/*                     *                                                               * Original routes and logic: unchanged.                         */                                                             
+const express = require("express");                             const cors = require("cors");                                   const { CORS_ORIGIN } = require("./config");                    const {                                                           getBootstrapPayload,                                            getOwnerPackages,                                               getRegionPackages,
   getProvincePackages,
 } = require("./dashboard-repository");
 
-// ── NEW ────────────────────────────────────────────────────────────────────────
+// ── NEW ───────────────────────────────────────────────────────────────────────
 const {
-  getPackageAnomalyScore,
-  getOwnerAnomalyScores,
   getTopRiskyPackages,
+  getOwnerAnomalySummary,
+  getSeverityDistribution,
+  getMethodBreakdown,
 } = require("./anomaly-repository");
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function resolveCorsOrigin() {
   if (CORS_ORIGIN === "*") return "*";
@@ -40,7 +24,7 @@ function createApp(db) {
   app.use(cors({ origin: resolveCorsOrigin() }));
   app.use(express.json());
 
-  // ── Existing routes (unchanged) ────────────────────────────────────────────
+  // ── Existing routes (unchanged) ───────────────────────────────────────────
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -74,56 +58,84 @@ function createApp(db) {
     res.json(payload);
   });
 
-  // ── NEW: Anomaly routes ────────────────────────────────────────────────────
+  // ── NEW: Anomaly routes ───────────────────────────────────────────────────
 
   /**
-   * GET /api/anomaly/packages/:packageId
-   * Score a single package by ID.
+   * GET /api/anomaly/top
    *
-   * Response: { data: { package_id, score, label, anomaly_count, anomalies[] } }
+   * Top risky packages nationally, sorted by risk_score DESC.
+   * Leverages the existing `risk_score` and `severity` columns — no re-scoring.
+   *
+   * Query params:
+   *   ownerType    - filter: kabkota | provinsi | central | other
+   *   severity     - filter: low | med | high | absurd
+   *   mencurigakan - filter: 1 = only is_mencurigakan packages
+   *   pemborosan   - filter: 1 = only is_pemborosan packages
+   *   priorityOnly - filter: 1 = only is_priority packages
+   *   limit        - max results (default 50, max 200)
+   *
+   * Response: { data: [...], meta: { returned, filters } }
    */
-  app.get("/api/anomaly/packages/:packageId", (req, res) => {
-    const result = getPackageAnomalyScore(db, req.params.packageId);
-    if (!result) { res.status(404).json({ error: "Package not found" }); return; }
-    res.json(result);
+  app.get("/api/anomaly/top", (req, res) => {
+    res.json(getTopRiskyPackages(db, req.query));
   });
 
   /**
-   * GET /api/anomaly/owners/packages?ownerType=&ownerName=
-   * Score all packages for a specific owner, sorted by risk score.
+   * GET /api/anomaly/owners/summary?ownerType=&ownerName=
    *
-   * Response: { data: [...], meta: { total, high, medium, low, clean } }
+   * Anomaly breakdown for a specific owner:
+   * aggregated stats (mencurigakan count, pemborosan count, avg/max risk_score)
+   * + top risky packages within that owner.
+   *
+   * Query params (optional filters on topPackages):
+   *   severity, mencurigakan, pemborosan, limit (default 20)
+   *
+   * Response: { summary: {...}, topPackages: [...] }
    */
-  app.get("/api/anomaly/owners/packages", (req, res) => {
+  app.get("/api/anomaly/owners/summary", (req, res) => {
     const ownerType = (req.query.ownerType || "").trim();
     const ownerName = (req.query.ownerName || "").trim();
+
     if (!ownerType || !ownerName) {
       res.status(400).json({ error: "ownerType and ownerName are required" });
       return;
     }
-    const result = getOwnerAnomalyScores(db, ownerType, ownerName);
+
+    const result = getOwnerAnomalySummary(db, ownerType, ownerName, req.query);
+    if (!result) { res.status(404).json({ error: "Owner not found" }); return; }
     res.json(result);
   });
 
   /**
-   * GET /api/anomaly/top?label=HIGH&ownerType=&ownerName=&method=&limit=50
-   * Top risky packages across owners, optionally filtered.
+   * GET /api/anomaly/severity
    *
-   * Query params:
-   *   label      - filter by risk label (HIGH | MEDIUM | LOW | CLEAN)
-   *   ownerType  - filter by owner type
-   *   ownerName  - filter by owner name (partial match)
-   *   method     - filter by procurement method (partial match)
-   *   limit      - max results (default 50, max 200)
+   * National severity distribution:
+   * count, total potential waste, and avg risk_score per severity level.
    *
-   * Response: { data: [...], meta: { returned, high, medium, low, clean } }
+   * Response: { data: [{ severity, totalPackages, totalPotentialWaste, avgRiskScore }] }
    */
-  app.get("/api/anomaly/top", (req, res) => {
-    const result = getTopRiskyPackages(db, req.query);
-    res.json(result);
+  app.get("/api/anomaly/severity", (_req, res) => {
+    res.json(getSeverityDistribution(db));
   });
 
-  // ── Error handler (unchanged) ──────────────────────────────────────────────
+  /**
+   * GET /api/anomaly/methods?ownerType=&ownerName=
+   *
+   * Procurement method breakdown with anomaly counts.
+   * Useful for spotting penunjukan langsung dominance within an owner.
+   *
+   * Query params (optional scope):
+   *   ownerType, ownerName
+   *
+   * Response: { data: [{ procurementMethod, totalPackages, totalBudget,
+   *                       totalPotentialWaste, totalMencurigakan,
+   *                       totalPemborosan, avgRiskScore }] }
+   */
+  app.get("/api/anomaly/methods", (req, res) => {
+    res.json(getMethodBreakdown(db, req.query));
+  });
+
+  // ── Error handler (unchanged) ─────────────────────────────────────────────
 
   app.use((err, _req, res, _next) => {
     console.error(err);
