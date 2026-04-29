@@ -39,6 +39,12 @@
     modalBody: document.getElementById("modalBody"),
   };
 
+  // Sub-container sidebar (controls & list). Diinisialisasi sekali di renderSidebarContent(),
+  // lalu di-reuse tiap render. Di-reset ke null saat view mode berubah (lihat setMapFilter)
+  // supaya shell di-rebuild ulang dengan struktur yang sesuai.
+  let sbcControls = null;
+  let sbcList = null;
+
   if (Object.values(dom).some((element) => !element)) {
     console.error("Dashboard shell is incomplete.");
     return;
@@ -357,6 +363,9 @@
   }
 
   function renderSidebarMessage(message, isError) {
+    // Reset referensi shell — kalau dipanggil saat error/loading, shell perlu di-rebuild dari awal
+    sbcControls = null;
+    sbcList = null;
     dom.sidebarContent.innerHTML = `<div class="panel-msg${isError ? " error" : ""}">${escapeHtml(message)}</div>`;
   }
 
@@ -614,70 +623,108 @@
     }).join("");
   }
 
-  function sortControl() {
-    const placeholder = isCentralOwnerMode()
-      ? "Cari kementerian/lembaga..."
-      : isProvinceView()
-      ? "Cari provinsi..."
-      : "Cari kabupaten/kota...";
+  // Placeholder teks bergantung mode aktif — diupdate tanpa rebuild DOM input
+  function getSearchPlaceholder() {
+    if (isCentralOwnerMode()) return "Cari kementerian/lembaga...";
+    if (isProvinceView()) return "Cari provinsi...";
+    return "Cari kabupaten/kota...";
+  }
 
-    return (
-      `<div class="sw"><span class="si">&#128269;</span><input type="text" placeholder="${escapeAttr(
-        placeholder
-      )}" value="${escapeAttr(state.search)}" oninput="${actionExpr("dashboardActions.setSearch(this.value)")}" /></div>` +
-      `<div class="sort-bar"><label>Urutkan</label><select onchange="${actionExpr("dashboardActions.setSort(this.value)")}" aria-label="Urutkan area">` +
-      `<option value="waste"${state.sortBy === "waste" ? " selected" : ""}>Potensi Pemborosan</option>` +
-      `<option value="priority"${state.sortBy === "priority" ? " selected" : ""}>Paket Prioritas</option>` +
-      `<option value="packages"${state.sortBy === "packages" ? " selected" : ""}>Total Paket</option>` +
-      `<option value="budget"${state.sortBy === "budget" ? " selected" : ""}>Total Pagu</option>` +
-      `</select></div>`
-    );
+  // Mount controls (search + sort) sekali ke #sbc, lalu #sbc-list untuk list yang berubah.
+  // Tujuannya: input tidak pernah di-destroy saat list di-refresh, jadi focus tidak terlepas.
+  function ensureSidebarShell() {
+    if (sbcControls && sbcList) {
+      return;
+    }
+
+    dom.sidebarContent.innerHTML =
+      `<div id="sbc-controls">` +
+      `<div class="sw"><span class="si">&#128269;</span>` +
+      `<input id="sidebar-search" type="text" placeholder="${escapeAttr(getSearchPlaceholder())}" autocomplete="off" />` +
+      `</div>` +
+      `<div class="sort-bar"><label>Urutkan</label>` +
+      `<select id="sidebar-sort" aria-label="Urutkan area">` +
+      `<option value="waste">Potensi Pemborosan</option>` +
+      `<option value="priority">Paket Prioritas</option>` +
+      `<option value="packages">Total Paket</option>` +
+      `<option value="budget">Total Pagu</option>` +
+      `</select></div>` +
+      `</div>` +
+      `<div id="sbc-list"></div>`;
+
+    sbcControls = document.getElementById("sbc-controls");
+    sbcList = document.getElementById("sbc-list");
+
+    const searchInput = document.getElementById("sidebar-search");
+    const sortSelect = document.getElementById("sidebar-sort");
+
+    searchInput.addEventListener("input", () => setSearch(searchInput.value));
+    sortSelect.addEventListener("change", () => setSort(sortSelect.value));
+  }
+
+  // Sinkronisasi nilai & placeholder controls tanpa menyentuh focus
+  function syncSidebarControls() {
+    if (!sbcControls) return;
+
+    const searchInput = document.getElementById("sidebar-search");
+    const sortSelect = document.getElementById("sidebar-sort");
+
+    if (searchInput) {
+      searchInput.placeholder = getSearchPlaceholder();
+      // Hanya update value jika berbeda — hindari gangguan cursor posisi
+      if (searchInput.value !== state.search) {
+        searchInput.value = state.search;
+      }
+    }
+
+    if (sortSelect && sortSelect.value !== state.sortBy) {
+      sortSelect.value = state.sortBy;
+    }
   }
 
   function renderOwnerSidebarContent() {
+    ensureSidebarShell();
+    syncSidebarControls();
     const owners = getFilteredOwnersForSidebar();
 
     if (!owners.length) {
-      dom.sidebarContent.innerHTML =
-        sortControl() + `<div class="panel-msg">Tidak ada kementerian/lembaga yang cocok dengan filter saat ini.</div>`;
+      sbcList.innerHTML = `<div class="panel-msg">Tidak ada kementerian/lembaga yang cocok dengan filter saat ini.</div>`;
       return;
     }
 
     const maxWaste = Math.max(...owners.map((owner) => owner.totalPotentialWaste), 1);
 
-    dom.sidebarContent.innerHTML =
-      sortControl() +
-      owners
-        .map((owner, index) => {
-          const selectedClass =
-            state.selectedOwnerKey === getOwnerCardKey(owner.ownerType, owner.ownerName) ? " a" : "";
+    sbcList.innerHTML = owners
+      .map((owner, index) => {
+        const selectedClass =
+          state.selectedOwnerKey === getOwnerCardKey(owner.ownerType, owner.ownerName) ? " a" : "";
 
-          return (
-            `<div class="pi${selectedClass}" onclick="${actionCall("openOwnerModal", owner.ownerName, owner.ownerType)}">` +
-            `<div class="pit"><div class="pn"><span style="color:var(--t3);font-size:9px;margin-right:5px">#${index + 1}</span>${escapeHtml(
-              owner.ownerName
-            )}</div><div class="tbd bc">K/L</div></div>` +
-            `<div style="font-size:9.5px;color:var(--t3);margin-bottom:4px">Kementerian/Lembaga</div>` +
-            `<div><span class="ppv">Rp ${escapeHtml(formatCompactCurrency(owner.totalPotentialWaste))}</span><span class="ppl"> &middot; ${escapeHtml(
-              formatNumber(owner.totalPriorityPackages)
-            )} prioritas</span></div>` +
-            `<div class="bw"><div class="bf" style="width:${Math.max(
-              4,
-              Math.round((owner.totalPotentialWaste / maxWaste) * 100)
-            )}%;background:${escapeAttr(getLegendColor(owner.totalPotentialWaste))}"></div></div>` +
-            `<div class="ps"><div class="pst">Total Paket: <strong>${escapeHtml(
-              formatNumber(owner.totalPackages)
-            )}</strong></div><div class="pst">Severity High: <strong>${escapeHtml(
-              formatNumber(owner.severityCounts.high)
-            )}</strong></div></div>` +
-            `<div class="owner-mix">Severity Absurd ${escapeHtml(formatNumber(owner.severityCounts.absurd))}</div>` +
-            `<div class="waste-row"><span class="waste-label">Pagu Teraudit</span><span class="waste-val">${escapeHtml(
-              `Rp ${formatCompactCurrency(owner.totalBudget)}`
-            )}</span></div>` +
-            `</div>`
-          );
-        })
-        .join("");
+        return (
+          `<div class="pi${selectedClass}" onclick="${actionCall("openOwnerModal", owner.ownerName, owner.ownerType)}">` +
+          `<div class="pit"><div class="pn"><span style="color:var(--t3);font-size:9px;margin-right:5px">#${index + 1}</span>${escapeHtml(
+            owner.ownerName
+          )}</div><div class="tbd bc">K/L</div></div>` +
+          `<div style="font-size:9.5px;color:var(--t3);margin-bottom:4px">Kementerian/Lembaga</div>` +
+          `<div><span class="ppv">Rp ${escapeHtml(formatCompactCurrency(owner.totalPotentialWaste))}</span><span class="ppl"> &middot; ${escapeHtml(
+            formatNumber(owner.totalPriorityPackages)
+          )} prioritas</span></div>` +
+          `<div class="bw"><div class="bf" style="width:${Math.max(
+            4,
+            Math.round((owner.totalPotentialWaste / maxWaste) * 100)
+          )}%;background:${escapeAttr(getLegendColor(owner.totalPotentialWaste))}"></div></div>` +
+          `<div class="ps"><div class="pst">Total Paket: <strong>${escapeHtml(
+            formatNumber(owner.totalPackages)
+          )}</strong></div><div class="pst">Severity High: <strong>${escapeHtml(
+            formatNumber(owner.severityCounts.high)
+          )}</strong></div></div>` +
+          `<div class="owner-mix">Severity Absurd ${escapeHtml(formatNumber(owner.severityCounts.absurd))}</div>` +
+          `<div class="waste-row"><span class="waste-label">Pagu Teraudit</span><span class="waste-val">${escapeHtml(
+            `Rp ${formatCompactCurrency(owner.totalBudget)}`
+          )}</span></div>` +
+          `</div>`
+        );
+      })
+      .join("");
   }
 
   function renderSidebarContent() {
@@ -691,14 +738,15 @@
       return;
     }
 
+    ensureSidebarShell();
+    syncSidebarControls();
+
     const areas = getFilteredAreasForSidebar();
 
     if (!areas.length) {
-      dom.sidebarContent.innerHTML =
-        sortControl() +
-        `<div class="panel-msg">Tidak ada ${escapeHtml(
-          isProvinceView() ? "provinsi" : "region"
-        )} yang cocok dengan filter saat ini.</div>`;
+      sbcList.innerHTML = `<div class="panel-msg">Tidak ada ${escapeHtml(
+        isProvinceView() ? "provinsi" : "region"
+      )} yang cocok dengan filter saat ini.</div>`;
       return;
     }
 
@@ -709,37 +757,35 @@
     const maxWaste = Math.max(...areaEntries.map(({ metrics }) => metrics.totalPotentialWaste), 1);
     const ownerLabel = activeSidebarOwnerLabel();
 
-    dom.sidebarContent.innerHTML =
-      sortControl() +
-      areaEntries
-        .map(({ area, metrics }, index) => {
-          const areaKey = getAreaKey(area);
-          const selectedClass = state.selectedAreaKey === areaKey ? " a" : "";
+    sbcList.innerHTML = areaEntries
+      .map(({ area, metrics }, index) => {
+        const areaKey = getAreaKey(area);
+        const selectedClass = state.selectedAreaKey === areaKey ? " a" : "";
 
-          return (
-            `<div class="pi${selectedClass}" onclick="${actionCall("openAreaModal", areaKey)}">` +
-            `<div class="pit"><div class="pn"><span style="color:var(--t3);font-size:9px;margin-right:5px">#${index + 1}</span>${escapeHtml(
-              area.displayName
-            )}</div><div class="tbd ${areaBadgeClass(area)}">${escapeHtml(areaBadgeLabel(area))}</div></div>` +
-            `<div style="font-size:9.5px;color:var(--t3);margin-bottom:4px">${escapeHtml(areaSecondaryLine(area))}</div>` +
-            `<div><span class="ppv">Rp ${escapeHtml(formatCompactCurrency(metrics.totalPotentialWaste))}</span><span class="ppl"> &middot; ${escapeHtml(
-              formatNumber(metrics.totalPriorityPackages)
-            )} prioritas</span></div>` +
-            `<div class="bw"><div class="bf" style="width:${Math.max(
-              4,
-              Math.round((metrics.totalPotentialWaste / maxWaste) * 100)
-            )}%;background:${escapeAttr(getLegendColor(metrics.totalPotentialWaste))}"></div></div>` +
-            `<div class="ps"><div class="pst">Total Paket: <strong>${escapeHtml(
-              formatNumber(metrics.totalPackages)
-            )}</strong></div><div class="pst">Pemilik: <strong>${escapeHtml(ownerLabel)}</strong></div></div>` +
-            `<div class="owner-mix">${escapeHtml(areaOwnerSummary(area))}</div>` +
-            `<div class="waste-row"><span class="waste-label">Pagu Teraudit</span><span class="waste-val">${escapeHtml(
-              `Rp ${formatCompactCurrency(metrics.totalBudget)}`
-            )}</span></div>` +
-            `</div>`
-          );
-        })
-        .join("");
+        return (
+          `<div class="pi${selectedClass}" onclick="${actionCall("openAreaModal", areaKey)}">` +
+          `<div class="pit"><div class="pn"><span style="color:var(--t3);font-size:9px;margin-right:5px">#${index + 1}</span>${escapeHtml(
+            area.displayName
+          )}</div><div class="tbd ${areaBadgeClass(area)}">${escapeHtml(areaBadgeLabel(area))}</div></div>` +
+          `<div style="font-size:9.5px;color:var(--t3);margin-bottom:4px">${escapeHtml(areaSecondaryLine(area))}</div>` +
+          `<div><span class="ppv">Rp ${escapeHtml(formatCompactCurrency(metrics.totalPotentialWaste))}</span><span class="ppl"> &middot; ${escapeHtml(
+            formatNumber(metrics.totalPriorityPackages)
+          )} prioritas</span></div>` +
+          `<div class="bw"><div class="bf" style="width:${Math.max(
+            4,
+            Math.round((metrics.totalPotentialWaste / maxWaste) * 100)
+          )}%;background:${escapeAttr(getLegendColor(metrics.totalPotentialWaste))}"></div></div>` +
+          `<div class="ps"><div class="pst">Total Paket: <strong>${escapeHtml(
+            formatNumber(metrics.totalPackages)
+          )}</strong></div><div class="pst">Pemilik: <strong>${escapeHtml(ownerLabel)}</strong></div></div>` +
+          `<div class="owner-mix">${escapeHtml(areaOwnerSummary(area))}</div>` +
+          `<div class="waste-row"><span class="waste-label">Pagu Teraudit</span><span class="waste-val">${escapeHtml(
+            `Rp ${formatCompactCurrency(metrics.totalBudget)}`
+          )}</span></div>` +
+          `</div>`
+        );
+      })
+      .join("");
   }
 
   function featureStyle(feature) {
@@ -853,44 +899,43 @@
   function renderPackageTableRows(items) {
     return items.length
       ? items
-          .map((item) => {
-            const packageUrl = buildInaprocUrl(item.sourceId);
+        .map((item) => {
+          const packageUrl = buildInaprocUrl(item.sourceId);
 
-            return (
-              `<tr${
-                packageUrl
-                  ? ` class="package-row-link" tabindex="0" role="link" aria-label="${escapeAttr(
-                      `Buka ${item.packageName} di Inaproc`
-                    )}" onclick="${actionCall("openPackageDetail", item.sourceId)}" onkeydown="${actionExpr(
-                      `dashboardActions.handlePackageRowKeydown(event, ${jsArg(item.sourceId)})`
-                    )}"`
-                  : ""
-              }>` +
-              `<td class="mono">${escapeHtml(String(item.sourceId || item.id))}</td>` +
-              `<td class="pkg">${escapeHtml(item.packageName)}</td>` +
-              `<td><div class="tbl-owner">${escapeHtml(item.ownerName)}</div><div class="tbl-sub">${escapeHtml(
-                ownerTypeLabel(item.ownerType)
-              )}</div></td>` +
-              `<td><div class="tbl-owner">${escapeHtml(item.satker || "-")}</div><div class="tbl-sub">${escapeHtml(
-                item.locationRaw || "-"
-              )}</div></td>` +
-              `<td class="mono" style="color:var(--sage)">${escapeHtml(item.budget === null ? "-" : formatCurrencyLong(item.budget))}</td>` +
-              `<td><span class="sev-b" style="background:${escapeAttr(
-                item.audit.severity === "absurd"
-                  ? "rgba(212,169,153,.18)"
-                  : item.audit.severity === "high"
+          return (
+            `<tr${packageUrl
+              ? ` class="package-row-link" tabindex="0" role="link" aria-label="${escapeAttr(
+                `Buka ${item.packageName} di Inaproc`
+              )}" onclick="${actionCall("openPackageDetail", item.sourceId)}" onkeydown="${actionExpr(
+                `dashboardActions.handlePackageRowKeydown(event, ${jsArg(item.sourceId)})`
+              )}"`
+              : ""
+            }>` +
+            `<td class="mono">${escapeHtml(String(item.sourceId || item.id))}</td>` +
+            `<td class="pkg">${escapeHtml(item.packageName)}</td>` +
+            `<td><div class="tbl-owner">${escapeHtml(item.ownerName)}</div><div class="tbl-sub">${escapeHtml(
+              ownerTypeLabel(item.ownerType)
+            )}</div></td>` +
+            `<td><div class="tbl-owner">${escapeHtml(item.satker || "-")}</div><div class="tbl-sub">${escapeHtml(
+              item.locationRaw || "-"
+            )}</div></td>` +
+            `<td class="mono" style="color:var(--sage)">${escapeHtml(item.budget === null ? "-" : formatCurrencyLong(item.budget))}</td>` +
+            `<td><span class="sev-b" style="background:${escapeAttr(
+              item.audit.severity === "absurd"
+                ? "rgba(212,169,153,.18)"
+                : item.audit.severity === "high"
                   ? "rgba(168,60,46,.16)"
                   : item.audit.severity === "med"
                     ? "rgba(139,115,50,.16)"
                     : "rgba(123,134,163,.16)"
-              )};color:${escapeAttr(severityColor(item.audit.severity))}">${escapeHtml(
-                severityLabel(item.audit.severity)
-              )}</span></td>` +
-              `<td class="reason">${escapeHtml(item.audit.reason || "-")}</td>` +
-              `</tr>`
-            );
-          })
-          .join("")
+            )};color:${escapeAttr(severityColor(item.audit.severity))}">${escapeHtml(
+              severityLabel(item.audit.severity)
+            )}</span></td>` +
+            `<td class="reason">${escapeHtml(item.audit.reason || "-")}</td>` +
+            `</tr>`
+          );
+        })
+        .join("")
       : `<tr><td colspan="7" class="table-empty">Tidak ada paket untuk filter saat ini.</td></tr>`;
   }
 
@@ -901,8 +946,7 @@
         pagination.page - 1
       )}">Sebelumnya</button><div class="pager-text">Halaman ${escapeHtml(formatNumber(pagination.page))} / ${escapeHtml(
         formatNumber(pagination.totalPages)
-      )} &middot; ${escapeHtml(formatNumber(pagination.totalItems))} paket</div><button class="pager-btn" ${
-        pagination.page >= pagination.totalPages ? "disabled" : ""
+      )} &middot; ${escapeHtml(formatNumber(pagination.totalItems))} paket</div><button class="pager-btn" ${pagination.page >= pagination.totalPages ? "disabled" : ""
       } onclick="${actionCall("changeModalPage", pagination.page + 1)}">Berikutnya</button></div>`
     );
   }
@@ -959,10 +1003,8 @@
       )}" oninput="${actionExpr("dashboardActions.setModalSearch(this.value)")}" />` +
       `<select onchange="${actionExpr("dashboardActions.setModalOwnerType(this.value)")}" aria-label="Filter jenis pemilik">` +
       `<option value="">Semua Pemilik</option><option value="central"${state.modal.ownerType === "central" ? " selected" : ""}>Kementerian/Lembaga</option>` +
-      `<option value="provinsi"${state.modal.ownerType === "provinsi" ? " selected" : ""}>Pemprov</option><option value="kabkota"${
-        state.modal.ownerType === "kabkota" ? " selected" : ""
-      }>Pemkot</option><option value="other"${
-        state.modal.ownerType === "other" ? " selected" : ""
+      `<option value="provinsi"${state.modal.ownerType === "provinsi" ? " selected" : ""}>Pemprov</option><option value="kabkota"${state.modal.ownerType === "kabkota" ? " selected" : ""
+      }>Pemkot</option><option value="other"${state.modal.ownerType === "other" ? " selected" : ""
       }>Others</option></select>` +
       `<select onchange="${actionExpr("dashboardActions.setModalSeverity(this.value)")}" aria-label="Filter severity">${renderSeverityFilterOptions(
         state.modal.severity
@@ -1154,13 +1196,13 @@
     const path =
       state.modal.areaType === "owner"
         ? (() => {
-            params.set("ownerType", state.modal.ownerType);
-            params.set("ownerName", state.modal.ownerName);
-            return `/owners/packages?${params.toString()}`;
-          })()
+          params.set("ownerType", state.modal.ownerType);
+          params.set("ownerName", state.modal.ownerName);
+          return `/owners/packages?${params.toString()}`;
+        })()
         : state.modal.areaType === "province"
-        ? `/provinces/${encodeURIComponent(state.modal.areaKey)}/packages?${params.toString()}`
-        : `/regions/${encodeURIComponent(state.modal.areaKey)}/packages?${params.toString()}`;
+          ? `/provinces/${encodeURIComponent(state.modal.areaKey)}/packages?${params.toString()}`
+          : `/regions/${encodeURIComponent(state.modal.areaKey)}/packages?${params.toString()}`;
 
     try {
       const payload = await fetchJson(path);
@@ -1276,6 +1318,9 @@
       state.tab = "all";
       state.selectedAreaKey = null;
       state.selectedOwnerKey = null;
+      // Mode view berubah total — invalidate shell agar controls di-rebuild ulang
+      sbcControls = null;
+      sbcList = null;
       closeRegionModal();
       renderLegend();
       renderFilterChips();
@@ -1289,6 +1334,9 @@
       state.tab = "all";
       state.selectedAreaKey = null;
       state.selectedOwnerKey = null;
+      // Mode antara owner list dan area list berubah — shell perlu di-rebuild
+      sbcControls = null;
+      sbcList = null;
 
       if (state.modal.areaType === "owner" && !isCentralOwnerMode()) {
         closeRegionModal();
