@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 
 // For this strictly structural integration phase, we wrap the vanilla mount
 // without altering the UI or logic to maintain identical CSS and user paths.
