@@ -1,19 +1,37 @@
+import globals from 'globals';
+
+const sharedRules = {
+  'no-unused-vars': 'warn',
+  'no-undef': 'error',
+};
+
+const sharedLanguageOptions = {
+  ecmaVersion: 'latest',
+  sourceType: 'module',
+};
+
 export default [
   {
+    files: ['src/backend/**/*.js', 'scripts/**/*.js', 'worker.js', 'vite.config.js', 'eslint.config.js'],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
+      ...sharedLanguageOptions,
       globals: {
-        document: 'readonly',
-        navigator: 'readonly',
-        window: 'readonly',
-        process: 'readonly',
-        console: 'readonly',
+        ...globals.node,
       },
     },
-    rules: {
-      'no-unused-vars': 'warn',
-      'no-undef': 'error',
+    rules: sharedRules,
+  },
+  {
+    files: ['src/frontend/**/*.{js,jsx}'],
+    languageOptions: {
+      ...sharedLanguageOptions,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        ...globals.browser,
+      },
     },
+    rules: sharedRules,
   },
 ];

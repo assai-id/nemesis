@@ -30,6 +30,7 @@
     "@preact/preset-vite": "^2.9.3",
     "cross-env": "^10.1.0",
     "eslint": "^9.17.0",
+    "globals": "^17.6.0",
     "prettier": "^3.4.2",
     "vite": "^6.0.0"
   }
