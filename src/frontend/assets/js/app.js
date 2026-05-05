@@ -1285,7 +1285,10 @@
 
   function setSearch(value) {
     state.search = value;
-    renderSidebarContent(false);
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      renderSidebarContent(false);
+    }, 400);
   }
 
   function setSort(value) {
@@ -1342,6 +1345,7 @@
     renderSidebarContent();
   }
 
+  let searchTimeout = null;
   let modalSearchTimeout = null;
 
   function setModalSearch(value) {
