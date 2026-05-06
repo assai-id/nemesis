@@ -1804,6 +1804,10 @@ function seedDatabase(db) {
       packageCount += 1;
       record.mapped_region_count = regionKeys.length;
 
+      if (packageCount % 50000 === 0) {
+        console.log(`[Seed] Processed ${packageCount.toLocaleString()} rows...`);
+      }
+
       if (!regionKeys.length) {
         unmappedPackageCount += 1;
       } else if (regionKeys.length > 1) {
