@@ -1,5 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 :root {
+  /* Light Theme Variables (Standard) */
+  --b0: #ffffff;
+  --b1: #f8f9fa;
+  --b2: #f1f3f5;
+  --b2h: #e9ecef;
+  --bd: #dee2e6;
+  --ba: #868e96;
+  --t1: #212529;
+  --t2: #495057;
+  --t3: #868e96;
+  --sage: #7048e8;
+  --olive: #5f3dc4;
+  --rose: #e64980;
+  --brick: #d0052b;
+  --maroon: #820014;
+  --steel: #495057;
+  --sage-g: rgba(112, 72, 232, 0.1);
+  --olive-g: rgba(95, 61, 196, 0.1);
+  --rose-g: rgba(230, 73, 128, 0.1);
+  --brick-g: rgba(208, 5, 43, 0.1);
+  --steel-g: rgba(73, 80, 87, 0.1);
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-overlay: rgba(255, 255, 255, 0.85);
+  --icon-filter: none;
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  /* Dark Theme Variables (Original Nemesis) */
   --b0: #111d35;
   --b1: #162040;
   --b2: #1c2847;
@@ -20,6 +49,10 @@
   --rose-g: rgba(212, 169, 153, 0.15);
   --brick-g: rgba(168, 60, 46, 0.15);
   --steel-g: rgba(123, 134, 163, 0.15);
+  --bg-glass: rgba(28, 40, 71, 0.95);
+  --bg-overlay: rgba(10, 14, 26, 0.85);
+  --icon-filter: invert(1) brightness(0.85);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 * {
   margin: 0;
@@ -212,14 +245,14 @@ body {
   background-color: var(--b2h) !important;
 }
 .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(1) brightness(0.85) !important;
+  filter: var(--icon-filter) !important;
 }
 .audit-popup .maplibregl-popup-content {
   background: var(--b2) !important;
   border: 1px solid var(--sage) !important;
   border-radius: 10px !important;
   color: var(--t1) !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: var(--shadow-lg) !important;
   padding: 14px 16px !important;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -280,7 +313,7 @@ body {
   flex-wrap: wrap;
 }
 .fc {
-  background: rgba(28, 40, 71, 0.92);
+  background: var(--bg-glass);
   border: 1px solid var(--bd);
   border-radius: 7px;
   padding: 6px 12px;
@@ -306,7 +339,7 @@ body {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  background: rgba(28, 40, 71, 0.95);
+  background: var(--bg-glass);
   border: 1px solid var(--bd);
   border-radius: 9px;
   padding: 10px 14px;
@@ -737,7 +770,7 @@ body {
   position: fixed;
   inset: 0;
   padding: 8px;
-  background: rgba(10, 14, 26, 0.85);
+  background: var(--bg-overlay);
   z-index: 9999;
   display: none;
   align-items: stretch;
@@ -923,7 +956,7 @@ body {
   transform: translate(-50%, -50%);
   min-width: 220px;
   padding: 12px 16px;
-  background: rgba(28, 40, 71, 0.94);
+  background: var(--bg-glass);
   border: 1px solid var(--bd);
   border-radius: 10px;
   color: var(--t2);

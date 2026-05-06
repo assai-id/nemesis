@@ -196,12 +196,31 @@ window['AuditMap'] = (() => {
     });
   }
 
+  function setTheme(theme) {
+    if (!map) return;
+    const style =
+      theme === 'dark'
+        ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+        : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+    map.setStyle(style);
+  }
+
   function render(container, geo, options, onReady) {
     _isProvinceView = options.isProvinceView;
     _onAreaClick = options.onAreaClick;
     _getPopupHtml = options.getPopupHtml;
 
     ensureMap(container);
+
+    // Initial theme check
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const targetStyle = currentTheme === 'dark' 
+      ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+      : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+    
+    if (map.getStyle()?.name?.toLowerCase() !== (currentTheme === 'dark' ? 'dark matter' : 'positron')) {
+        map.setStyle(targetStyle);
+    }
 
     const apply = () => {
       if (!map.getSource(SOURCE)) {
@@ -239,7 +258,7 @@ window['AuditMap'] = (() => {
     map.getSource(SOURCE).setData(buildStyledGeo(geo, getFeatureStyle));
   }
 
-  return { render, refresh, closePopup: clearHover };
+  return { render, refresh, setTheme, closePopup: clearHover };
 })();
 
 export {};

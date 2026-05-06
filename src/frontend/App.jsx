@@ -4,6 +4,20 @@ import { useState, useEffect } from 'preact/hooks';
 // without altering the UI or logic to maintain identical CSS and user paths.
 
 export function App() {
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (window['AuditMap'] && window['AuditMap'].setTheme) {
+      window['AuditMap'].setTheme(theme);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   useEffect(() => {
     // Load map.js first so window.AuditMap is defined before app.js runs.
     let cancelled = false;
@@ -28,6 +42,9 @@ export function App() {
           </div>
         </div>
         <div class="hdr-r">
+          <button class="stb" onClick={toggleTheme} style={{ marginRight: '10px' }}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
           <div class="ll">
             <span class="ldot"></span> LIVE
           </div>

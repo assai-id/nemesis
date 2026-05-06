@@ -429,12 +429,12 @@
         unmappedPackages: 0,
         multiLocationPackages: 0,
       },
-      legend: payload.legend || { zeroColor: '#243155', ranges: [] },
+      legend: payload.legend || { zeroColor: 'var(--b2)', ranges: [] },
       geo: payload.geo || { type: 'FeatureCollection', features: [] },
       regions: Array.isArray(payload.regions) ? payload.regions : [],
       provinceView: {
         legend: (payload.provinceView && payload.provinceView.legend) || {
-          zeroColor: '#243155',
+          zeroColor: 'var(--b2)',
           ranges: [],
         },
         geo: (payload.provinceView && payload.provinceView.geo) || {
@@ -459,11 +459,11 @@
     const legend = getActiveLegend();
 
     if (!legend) {
-      return '#243155';
+      return 'var(--b2)';
     }
 
     if (!value || value <= 0) {
-      return legend.zeroColor || '#243155';
+      return legend.zeroColor || 'var(--b2)';
     }
 
     const range = (legend.ranges || []).find((item) => value >= item.min && value <= item.max);
@@ -609,7 +609,7 @@
       `<span>${escapeHtml(title)}</span>` +
       `<button onclick="${actionCall('toggleLegend')}" style="background:none;border:none;color:var(--t3);cursor:pointer;margin-left:8px;font-size:12px;padding:2px;" title="Sembunyikan Legenda">&#10005;</button>` +
       `</div>`,
-      `<div class="li"><div class="lsw" style="background:${escapeAttr(legend.zeroColor || '#243155')}"></div> ${escapeHtml(
+      `<div class="li"><div class="lsw" style="background:${escapeAttr(legend.zeroColor || 'var(--b2)')}"></div> ${escapeHtml(
         zeroLabel
       )}</div>`,
     ];
@@ -788,7 +788,7 @@
     const strokeOpacity = (selected ? 1 : 0.2) * (visible ? 0.85 : 0.2);
 
     return {
-      fillColor: area ? getLegendColor(area.totalPotentialWaste) : '#243155',
+      fillColor: area ? getLegendColor(area.totalPotentialWaste) : 'var(--b2)',
       fillOpacity: selected ? 0.72 : visible ? 0.52 : 0.08,
       strokeColor: selected ? '#f0d8a8' : '#b5a882',
       strokeWidth: selected ? 2.1 : 0.8,
@@ -805,7 +805,7 @@
       return (
         `<div class="pt">${escapeHtml(area.displayName)}</div>` +
         `<div class="popup-sub">Paket Pemprov</div>` +
-        `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:#b5a882">Rp ${escapeHtml(
+        `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:var(--sage)">Rp ${escapeHtml(
           formatCompactCurrency(area.totalPotentialWaste)
         )}</span></div>` +
         `<div class="pr"><span class="l">Paket Prioritas</span><span class="v">${escapeHtml(
@@ -832,7 +832,7 @@
     return (
       `<div class="pt">${escapeHtml(area.displayName)}</div>` +
       `<div class="popup-sub">${escapeHtml(area.provinceName)}</div>` +
-      `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:#b5a882">Rp ${escapeHtml(
+      `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:var(--sage)">Rp ${escapeHtml(
         formatCompactCurrency(area.totalPotentialWaste)
       )}</span></div>` +
       `<div class="pr"><span class="l">Paket Prioritas</span><span class="v">${escapeHtml(
