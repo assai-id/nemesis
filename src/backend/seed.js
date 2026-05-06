@@ -1798,12 +1798,19 @@ function seedDatabase(db) {
     }
 
     forEachAuditRow(auditSource, (row) => {
+      // Development Helper: Limit the number of rows processed to speed up testing.
+      // Set SEED_LIMIT in your .env or environment variables to use this.
+      if (process.env.SEED_LIMIT && packageCount >= parseInt(process.env.SEED_LIMIT, 10)) {
+        return;
+      }
+
       const record = normalizeAuditRow(row, packageCount);
       const { regionKeys, provinceKeys } = resolveLocation(record.location_raw);
 
       packageCount += 1;
       record.mapped_region_count = regionKeys.length;
 
+      // Provide visual feedback during the seeding process for large datasets.
       if (packageCount % 50000 === 0) {
         console.log(`[Seed] Processed ${packageCount.toLocaleString()} rows...`);
       }
