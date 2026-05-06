@@ -5,10 +5,16 @@ import { useState, useEffect } from 'preact/hooks';
 
 export function App() {
   useEffect(() => {
-    // Dynamically load the legacy scripts ONLY after the Preact DOM wrapper has actually mounted!
-    import('./assets/js/map.js').then(() => {
-      import('./assets/js/app.js');
-    });
+    // Load map.js first so window.AuditMap is defined before app.js runs.
+    let cancelled = false;
+    (async () => {
+      await import('./assets/js/map.js');
+      if (cancelled) return;
+      await import('./assets/js/app.js');
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

@@ -5,8 +5,8 @@
     ''
   );
 
-  if (!window['maplibregl'] || !window['AuditMap']) {
-    console.error('MapLibre GL or AuditMap failed to load.');
+  if (!window['AuditMap']) {
+    console.error('AuditMap failed to load.');
     return;
   }
 
