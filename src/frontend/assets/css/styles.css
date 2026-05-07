@@ -181,6 +181,9 @@ body {
   flex: 1;
   min-height: 0;
 }
+.ml.map-hidden {
+  grid-template-columns: 1fr;
+}
 .mc {
   position: relative;
 }

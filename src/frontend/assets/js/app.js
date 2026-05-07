@@ -1453,10 +1453,12 @@
     if (mc && btn) {
       if (!mapVisible) {
         mc.style.display = 'none';
+        mc.parentElement.classList.add('map-hidden');
         btn.innerHTML = '&#128506; Tampilkan Peta';
         btn.classList.add('a');
       } else {
         mc.style.display = '';
+        mc.parentElement.classList.remove('map-hidden');
         btn.innerHTML = '&#128506; Sembunyikan Peta';
         btn.classList.remove('a');
         setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
