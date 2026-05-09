@@ -3,8 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audit Pengadaan Kab/Kota - LKPP 2026</title>
+  <meta name="theme-color" content="#fafaf6" id="metaThemeColor">
+  <title>Nemesis · Audit Pengadaan Nasional · TA 2026</title>
+  <meta name="description" content="Berkas perkara publik atas anomali pengadaan barang/jasa pemerintah Indonesia. Operasi Diponegoro · Abil Sudarman School of AI.">
   <link rel="icon" href="data:,"/>
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('nemesis-theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored === 'dark' || stored === 'light' ? stored : (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        var meta = document.getElementById('metaThemeColor');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#111d35' : '#fafaf6');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/assets/css/styles.css"/>
 </head>
 <body>

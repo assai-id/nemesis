@@ -1,5 +1,7 @@
+import zlib from 'node:zlib';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
@@ -48,6 +50,12 @@ export async function createApp() {
       origin: resolveCorsOrigin(),
     })
   );
+  app.use(
+    compression({
+      threshold: 1024,
+      level: zlib.constants.Z_DEFAULT_COMPRESSION,
+    })
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(hpp()); // HTTP Parameter Pollution prevention
 
@@ -65,8 +73,46 @@ export async function createApp() {
     res.json({ status: 'ok' });
   });
 
-  app.get('/api/bootstrap', (_req, res) => {
-    res.json(getBootstrapPayload(db));
+  // Pre-stringify + pre-gzip cache for the heavy bootstrap payload.
+  // Data is static for the server lifetime; rebuild on db:reset → restart.
+  function buildBootstrapCache() {
+    const json = JSON.stringify(getBootstrapPayload(db));
+    return {
+      json,
+      gzip: zlib.gzipSync(json, { level: zlib.constants.Z_DEFAULT_COMPRESSION }),
+      etag: `W/"${zlib.crc32 ? zlib.crc32(json).toString(16) : json.length.toString(16)}"`,
+    };
+  }
+
+  // Eager warm-up so the first user request is instant.
+  const t0 = Date.now();
+  let cachedBootstrap = buildBootstrapCache();
+  console.log(
+    `[Bootstrap] Pre-built cache: ${(cachedBootstrap.json.length / 1024 / 1024).toFixed(1)} MB JSON → ${(cachedBootstrap.gzip.length / 1024 / 1024).toFixed(1)} MB gzip in ${Date.now() - t0} ms`
+  );
+
+  app.get('/api/bootstrap', (req, res) => {
+    if (!cachedBootstrap) {
+      cachedBootstrap = buildBootstrapCache();
+    }
+
+    if (req.headers['if-none-match'] === cachedBootstrap.etag) {
+      res.status(304).end();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('ETag', cachedBootstrap.etag);
+    res.setHeader('Vary', 'Accept-Encoding');
+
+    const acceptsGzip = (req.headers['accept-encoding'] || '').includes('gzip');
+    if (acceptsGzip) {
+      res.setHeader('Content-Encoding', 'gzip');
+      res.end(cachedBootstrap.gzip);
+    } else {
+      res.end(cachedBootstrap.json);
+    }
   });
 
   app.get('/api/regions/:regionKey/packages', (req, res) => {

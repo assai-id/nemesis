@@ -1495,6 +1495,7 @@ function createIndexes(db) {
     CREATE INDEX idx_packages_severity ON packages(severity);
     CREATE INDEX idx_package_regions_region ON package_regions(region_key, package_id);
     CREATE INDEX idx_package_provinces_province ON package_provinces(province_key, package_id);
+    CREATE INDEX idx_packages_filter ON packages(id, severity, owner_type, is_priority);
   `);
 }
 

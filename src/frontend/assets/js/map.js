@@ -8,12 +8,39 @@ window['AuditMap'] = (() => {
   const HOVER_FILL = 'audit-fill-hover';
   const HOVER_LINE = 'audit-line-hover';
 
+  // Theme-aware basemap + paint fallbacks. Values must be literal hex —
+  // Maplibre paint expressions do not resolve CSS `var(--…)` tokens.
+  const THEMES = {
+    light: {
+      basemap: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+      fillFallback: '#eeeae1',
+      strokeFallback: '#aaa49a',
+      hoverLine: '#84320d',
+    },
+    dark: {
+      basemap: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
+      fillFallback: '#243155',
+      strokeFallback: '#3d4f78',
+      hoverLine: '#cc6e3f',
+    },
+  };
+
+  function currentTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+
+  function themeColors() {
+    return THEMES[currentTheme()];
+  }
+
   let map = null;
   let popup = null;
   let hoveredId = null;
   let _isProvinceView = false;
   let _onAreaClick = null;
   let _getPopupHtml = null;
+  let _lastGeo = null;
+  let _lastGetFeatureStyle = null;
 
   function getFeatureAreaKey(props) {
     return _isProvinceView ? props.provinceKey : props.regionKey;
@@ -75,7 +102,7 @@ window['AuditMap'] = (() => {
       zoom: 5,
       minZoom: 4,
       maxZoom: 12,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      style: themeColors().basemap,
     });
   }
 
@@ -99,6 +126,7 @@ window['AuditMap'] = (() => {
   }
 
   function addLayers() {
+    const colors = themeColors();
     map.addSource(SOURCE, {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
@@ -110,8 +138,8 @@ window['AuditMap'] = (() => {
       type: 'fill',
       source: SOURCE,
       paint: {
-        'fill-color': ['coalesce', ['get', 'fillColor'], '#243155'],
-        'fill-opacity': ['coalesce', ['get', 'fillOpacity'], 0.08],
+        'fill-color': ['coalesce', ['get', 'fillColor'], colors.fillFallback],
+        'fill-opacity': ['coalesce', ['get', 'fillOpacity'], 0.18],
       },
     });
 
@@ -120,9 +148,9 @@ window['AuditMap'] = (() => {
       type: 'line',
       source: SOURCE,
       paint: {
-        'line-color': ['coalesce', ['get', 'strokeColor'], '#b5a882'],
-        'line-width': ['coalesce', ['get', 'strokeWidth'], 0.8],
-        'line-opacity': ['coalesce', ['get', 'strokeOpacity'], 0.17],
+        'line-color': ['coalesce', ['get', 'strokeColor'], colors.strokeFallback],
+        'line-width': ['coalesce', ['get', 'strokeWidth'], 0.7],
+        'line-opacity': ['coalesce', ['get', 'strokeOpacity'], 0.4],
       },
     });
 
@@ -132,11 +160,11 @@ window['AuditMap'] = (() => {
       type: 'fill',
       source: SOURCE,
       paint: {
-        'fill-color': ['coalesce', ['get', 'fillColor'], '#243155'],
+        'fill-color': ['coalesce', ['get', 'fillColor'], colors.fillFallback],
         'fill-opacity': [
           'case',
           ['boolean', ['feature-state', 'hover'], false],
-          ['min', ['+', ['coalesce', ['get', 'fillOpacity'], 0.08], 0.16], 0.85],
+          ['min', ['+', ['coalesce', ['get', 'fillOpacity'], 0.18], 0.18], 0.92],
           0,
         ],
       },
@@ -147,8 +175,8 @@ window['AuditMap'] = (() => {
       type: 'line',
       source: SOURCE,
       paint: {
-        'line-color': '#f0d8a8',
-        'line-width': 1.8,
+        'line-color': colors.hoverLine,
+        'line-width': 2,
         'line-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0],
       },
     });
@@ -200,6 +228,8 @@ window['AuditMap'] = (() => {
     _isProvinceView = options.isProvinceView;
     _onAreaClick = options.onAreaClick;
     _getPopupHtml = options.getPopupHtml;
+    _lastGeo = geo;
+    _lastGetFeatureStyle = options.getFeatureStyle;
 
     ensureMap(container);
 
@@ -234,12 +264,32 @@ window['AuditMap'] = (() => {
   }
 
   function refresh(geo, getFeatureStyle) {
+    _lastGeo = geo;
+    _lastGetFeatureStyle = getFeatureStyle;
     if (!map?.getSource(SOURCE)) return;
     clearHover();
     map.getSource(SOURCE).setData(buildStyledGeo(geo, getFeatureStyle));
   }
 
-  return { render, refresh, closePopup: clearHover };
+  // Swap the basemap to match the active theme. Re-adds our custom
+  // source + layers (setStyle wipes them) and re-applies the cached
+  // geo data so the choropleth survives the basemap swap.
+  function setTheme() {
+    if (!map) return;
+    const newStyle = themeColors().basemap;
+    clearHover();
+    map.setStyle(newStyle);
+    map.once('style.load', () => {
+      addLayers();
+      if (_lastGeo && _lastGetFeatureStyle) {
+        const styledGeo = buildStyledGeo(_lastGeo, _lastGetFeatureStyle);
+        const src = map.getSource(SOURCE);
+        if (src) src.setData(styledGeo);
+      }
+    });
+  }
+
+  return { render, refresh, setTheme, closePopup: clearHover };
 })();
 
 export {};
