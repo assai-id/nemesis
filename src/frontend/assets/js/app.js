@@ -16,6 +16,7 @@
     selectedAreaKey: null,
     selectedOwnerKey: null,
     search: '',
+    searchSelection: null,
     sortBy: 'waste',
     isLegendHidden: false,
     modalRequestId: 0,
@@ -498,18 +499,13 @@
     let areas = getActiveAreas().filter((area) => areaMatchesCurrentView(area));
 
     if (state.search) {
-      const query = state.search.toLowerCase();
-      const activeOwnerQuery = activeSidebarOwnerLabel().toLowerCase();
+      const query = state.search.toLowerCase().trim();
       areas = areas.filter((area) => {
         const matchesName =
           area.displayName.toLowerCase().includes(query) ||
           area.provinceName.toLowerCase().includes(query);
 
-        if (isProvinceView()) {
-          return matchesName;
-        }
-
-        return matchesName || activeOwnerQuery.includes(query);
+        return matchesName;
       });
     }
 
@@ -541,7 +537,7 @@
     let owners = getCentralOwnersForSidebar().slice();
 
     if (state.search) {
-      const query = state.search.toLowerCase();
+      const query = state.search.toLowerCase().trim();
       owners = owners.filter((owner) => owner.ownerName.toLowerCase().includes(query));
     }
 
@@ -778,6 +774,17 @@
     }
 
     dom.sidebarContent.insertAdjacentHTML('beforeend', listHtml);
+
+    if (typeof state.searchSelection === 'number') {
+      const el = document.getElementById('sidebarSearch');
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+        try {
+          el.setSelectionRange(state.searchSelection, state.searchSelection);
+        } catch (e) {}
+      }
+      state.searchSelection = null;
+    }
   }
 
   function featureStyle(feature) {
@@ -1284,6 +1291,8 @@
   }
 
   function setSearch(value) {
+    const el = document.getElementById('sidebarSearch');
+    state.searchSelection = el instanceof HTMLInputElement ? el.selectionStart : null;
     state.search = value;
     renderSidebarContent(false);
   }
