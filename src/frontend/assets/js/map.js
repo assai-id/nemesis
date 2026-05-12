@@ -30,16 +30,24 @@ window['AuditMap'] = (() => {
     };
   }
 
+  function walkRing(ring, fn) {
+    for (const p of ring) fn(p[0], p[1]);
+  }
+
+  function walkPoly(poly, fn) {
+    for (const ring of poly) walkRing(ring, fn);
+  }
+
   function walkCoords(geometry, fn) {
     const c = geometry.coordinates;
     if (geometry.type === 'Point') {
       fn(c[0], c[1]);
     } else if (geometry.type === 'LineString' || geometry.type === 'MultiPoint') {
-      c.forEach((p) => fn(p[0], p[1]));
+      for (const p of c) fn(p[0], p[1]);
     } else if (geometry.type === 'Polygon' || geometry.type === 'MultiLineString') {
-      c.forEach((ring) => ring.forEach((p) => fn(p[0], p[1])));
+      for (const ring of c) walkRing(ring, fn);
     } else if (geometry.type === 'MultiPolygon') {
-      c.forEach((poly) => poly.forEach((ring) => ring.forEach((p) => fn(p[0], p[1]))));
+      for (const poly of c) walkPoly(poly, fn);
     }
   }
 
@@ -241,5 +249,3 @@ window['AuditMap'] = (() => {
 
   return { render, refresh, closePopup: clearHover };
 })();
-
-export {};
