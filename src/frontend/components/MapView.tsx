@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { useDashboardStore } from '../hooks/useDashboardStore';
 import { dashboardStore } from '../store/dashboard.store';
-import { getLegendColor, formatCompactCurrency, formatNumber } from '../lib/format';
+import { getLegendColor, formatCompactCurrency, formatNumber, escapeHtml } from '../lib/format';
 import type { Feature } from 'geojson';
 import type { FeatureStyle } from '../types/audit-map';
 import type { RegionRow, ProvinceRow } from '../types/api';
@@ -87,7 +87,7 @@ function computePopupHtml(areaKey: string): string | null {
 
   if (isProvince) {
     return (
-      `<div class="pt">${area.displayName}</div>` +
+      `<div class="pt">${escapeHtml(area.displayName)}</div>` +
       `<div class="popup-sub">Paket Pemprov</div>` +
       `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:#b5a882">Rp ${formatCompactCurrency(area.totalPotentialWaste)}</span></div>` +
       `<div class="pr"><span class="l">Paket Prioritas</span><span class="v">${formatNumber(area.totalPriorityPackages)}</span></div>` +
@@ -100,8 +100,8 @@ function computePopupHtml(areaKey: string): string | null {
 
   const r = area as RegionRow;
   return (
-    `<div class="pt">${area.displayName}</div>` +
-    `<div class="popup-sub">${r.provinceName}</div>` +
+    `<div class="pt">${escapeHtml(area.displayName)}</div>` +
+    `<div class="popup-sub">${escapeHtml(r.provinceName)}</div>` +
     `<div class="pr"><span class="l">Potensi Pemborosan</span><span class="v" style="color:#b5a882">Rp ${formatCompactCurrency(area.totalPotentialWaste)}</span></div>` +
     `<div class="pr"><span class="l">Paket Prioritas</span><span class="v">${formatNumber(area.totalPriorityPackages)}</span></div>` +
     `<div class="pr"><span class="l">Total Paket</span><span class="v">${formatNumber(area.totalPackages)}</span></div>` +

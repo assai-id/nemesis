@@ -748,6 +748,8 @@ body {
   display: flex;
 }
 .modal {
+  position: relative;
+  z-index: 1;
   background: var(--b0);
   width: 100%;
   height: 100%;
