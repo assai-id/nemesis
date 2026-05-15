@@ -436,6 +436,124 @@ input, select, textarea { font-family: inherit; }
   box-shadow: var(--shadow-pop);
 }
 
+/* AI disclosure — first-visit consent modal. Konten editorial, satu CTA
+   utama (Saya Mengerti) + link sekunder ke metode. */
+.ai-disclosure-card {
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  max-width: 720px;
+  border-radius: 18px;
+  gap: var(--sp-4);
+}
+
+.ai-disclosure-pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px var(--sp-3);
+  border-radius: 999px;
+  background: oklch(0.45 0.18 32 / 0.18);
+  color: var(--brand-hi);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ai-disclosure-pill > span {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--sans);
+}
+
+.ai-disclosure-title {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.ai-disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+.ai-disclosure-body strong { color: var(--ink); font-weight: 700; }
+
+.ai-disclosure-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--brand-hi);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--brand-line);
+  transition: text-decoration-color 0.16s ease-out;
+}
+.ai-disclosure-link:hover { text-decoration-color: var(--brand); }
+.ai-disclosure-link:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ai-disclosure-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-2);
+}
+
+.ai-disclosure-ack {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d0a663 0%, #b08842 100%);
+  color: #1a1408;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px oklch(0.5 0.08 70 / 0.30);
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
+}
+.ai-disclosure-ack:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px oklch(0.5 0.08 70 / 0.40);
+}
+.ai-disclosure-ack:focus-visible {
+  outline: 2px solid #b08842;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .ai-disclosure-card { padding: var(--sp-5); gap: var(--sp-3); }
+  .ai-disclosure-title { font-size: 22px; }
+  .ai-disclosure-body { font-size: 14px; }
+  .ai-disclosure-actions { justify-content: stretch; }
+  .ai-disclosure-ack { width: 100%; padding: 14px; }
+}
+
 .methods-head {
   display: flex;
   align-items: center;
@@ -842,6 +960,12 @@ input, select, textarea { font-family: inherit; }
   flex-shrink: 0;
 }
 
+/* Dark mode: dark border tenggelam di surface-hi. Pakai border terang
+   supaya swatch (terutama zero state) tetap terlihat sebagai chip. */
+:root[data-theme="dark"] .lsw {
+  border-color: oklch(1 0 0 / 0.18);
+}
+
 .lsw-steel { background: var(--sev-low); }
 .lsw-sage  { background: var(--sev-med); }
 .lsw-rose  { background: var(--sev-absurd); }
@@ -993,6 +1117,18 @@ input, select, textarea { font-family: inherit; }
   padding: 0 var(--sp-3);
 }
 
+.map-toggle-legend {
+  position: absolute;
+  bottom: var(--sp-4);
+  left: var(--sp-4);
+  z-index: 5;
+  background: var(--surface-hi);
+  color: var(--ink-2);
+  height: 36px;
+  padding: 0 var(--sp-4);
+  box-shadow: var(--shadow-soft);
+}
+
 /* ─── List pane (sidebar) ─────────────────────────────────────── */
 .sb {
   background: var(--bg-2);
@@ -1028,6 +1164,36 @@ input, select, textarea { font-family: inherit; }
 
 .sbh-controls {
   gap: var(--sp-2);
+}
+
+/* Sort-bar adalah row terpisah (.sbh-sort) — full width supaya select-nya
+   sejajar dengan search input di atasnya. */
+.sbh-sort { width: 100%; }
+.sbh-sort > .sort-bar { display: flex; width: 100%; align-items: center; gap: var(--sp-2); }
+.sbh-sort > .sort-bar select { flex: 1 1 auto; min-width: 0; }
+
+/* Desktop saat peta disembunyikan: pengguna butuh tetap bisa filter pemilik
+   tanpa mempersempit area daftar. Sort + filter pemilik berbagi satu baris
+   (kiri-kanan space-between), pencarian pindah ke baris di bawahnya. */
+@media (min-width: 761px) {
+  body.map-hidden .sbh {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--sp-2);
+  }
+  body.map-hidden .sbh-toolbar { grid-column: 1 / -1; grid-row: 1; }
+  body.map-hidden .sbh-sort {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  body.map-hidden .sbh-mfsb {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+  body.map-hidden .sbh-controls { grid-column: 1 / -1; grid-row: 3; }
+  body.map-hidden .sbh-sort > .sort-bar { width: auto; }
+  body.map-hidden .sbh-sort > .sort-bar select { flex: 0 0 auto; }
 }
 
 .sbh-mfsb:empty,
@@ -1208,9 +1374,15 @@ body.map-hidden .sbh-mfsb { display: flex; }
   padding: var(--sp-3) var(--sp-4);
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto;
   column-gap: var(--sp-3);
   row-gap: 4px;
+}
+
+/* Dark mode: --rule-soft hampir sama dengan --surface — pakai --rule yang
+   lebih kontras agar separator antar wilayah/owner tetap terbaca. */
+:root[data-theme="dark"] .pi {
+  border-bottom-color: var(--rule);
 }
 
 .pi:hover {
@@ -1319,6 +1491,37 @@ body.map-hidden .sbh-mfsb { display: flex; }
   display: block;
 }
 
+/* Pagu Teraudit — footer row full-width below the progress bar.
+   Label kiri (kapital tipis), nilai kanan (mono). Justify space-between
+   memberi visual rest yang konsisten dengan pasangan label-value lain
+   di file ini, tanpa memaksa kolom kanan jadi overcrowded. */
+.pi-budget {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  letter-spacing: 0;
+}
+
+.pi-budget-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.pi-budget-val {
+  font-family: var(--mono);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .bw {
   grid-column: 1 / -1;
   grid-row: 3;
@@ -1369,6 +1572,18 @@ body.map-hidden .sbh-mfsb { display: flex; }
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(2px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal {
+  position: relative;
+  z-index: 1;
+  background: var(--b0);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ─── Case file (real page route) ─────────────────────────────── */
@@ -1811,7 +2026,6 @@ body.map-hidden .sbh-mfsb { display: flex; }
 .modal-filters input {
   flex: 1 1 240px;
   min-width: 200px;
-  max-width: 360px;
   height: 32px;
   background: var(--surface-hi);
   border: 1px solid var(--rule);
@@ -2365,6 +2579,44 @@ body.map-hidden .sb { border-left: none; background: var(--bg); }
   .appbar-ticker { padding-left: var(--sp-3); padding-right: var(--sp-3); overflow-x: auto; gap: var(--sp-3); }
   .appbar-disclaimer { padding: var(--sp-2) var(--sp-3); }
   .appbar-disclaimer-text { font-size: 12px; line-height: 1.4; }
+
+  /* Sidebar header — compact mobile layout */
+  .sbh { padding: var(--sp-3); gap: var(--sp-3); }
+  /* Filter pemilik (Kementerian/Lembaga · Pemprov · Pemkot · Others) naik
+     ke atas judul "Wilayah" supaya scope filter ditetapkan dulu sebelum
+     pengguna melihat daftar — pola umum mobile filter-first. */
+  .sbh-mfsb { order: -1; }
+  /* Toolbar grid: title kiri (+ tombol "Tampilkan peta" kanan bila visible)
+     di baris atas, tabs full-width baris bawah. Tata letak konsisten apakah
+     peta sedang disembunyikan atau ditampilkan. */
+  .sbh-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--sp-2);
+    row-gap: var(--sp-2);
+    align-items: center;
+  }
+  .sbh-toolbar > .list-title { grid-column: 1; grid-row: 1; margin: 0; }
+  .sbh-toolbar > .map-toggle-show { grid-column: 2; grid-row: 1; }
+  .sbh-toolbar > .sbt {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-content: stretch;
+  }
+  .sbh-toolbar > .sbt .stb { flex: 1 1 auto; justify-content: center; }
+  .sbh-controls { gap: var(--sp-2); }
+  /* Owner-type filter chips: single row that scrolls horizontally instead of wrapping */
+  .moc-sb {
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .moc-sb::-webkit-scrollbar { display: none; }
+  .moc-sb .fc { flex: 0 0 auto; }
   .kc { padding-right: var(--sp-3); margin-right: var(--sp-3); }
   .kc:first-child .kv { font-size: 22px; }
   .kv { font-size: 16px; }
@@ -2535,23 +2787,23 @@ body.map-hidden .sb { border-left: none; background: var(--bg); }
   .case-summary > .stack-stats > div.stat-hero dd strong { font-size: 22px; }
   .case-summary > .stack-stats > div.stat-hero dd span { font-size: 11px; }
 
-  /* Filters: restore side-by-side, full-bleed sticky bar */
+  /* Filters: search di baris sendiri (full width), 2 select bagi rata baris bawah */
   .modal-filters {
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--sp-2);
     padding: var(--sp-3) var(--sp-4);
     margin: 0 calc(-1 * var(--sp-4)) var(--sp-3);
   }
   .modal-filters input {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     min-width: 0;
     max-width: none;
   }
   .modal-filters select {
-    flex: 0 0 132px;
-    min-width: 132px;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .modal-cnt { font-size: 12px; margin-bottom: var(--sp-2); }
@@ -2690,7 +2942,8 @@ body.map-hidden .sb { border-left: none; background: var(--bg); }
   .btn-share,
   .pager-btn,
   .map-toggle-show,
-  .map-toggle-hide {
+  .map-toggle-hide,
+  .map-toggle-legend {
     min-height: 44px;
   }
 
