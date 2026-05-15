@@ -1,13 +1,13 @@
 import { useDashboardStore } from '../hooks/useDashboardStore';
 import { formatCompactCurrency, formatNumber } from '../lib/format';
 
-interface KpiCard {
+interface KpiCardProps {
   label: string;
   value: string;
   sublabel: string;
 }
 
-function KpiCard({ label, value, sublabel }: Readonly<KpiCard>) {
+function KpiCard({ label, value, sublabel }: Readonly<KpiCardProps>) {
   return (
     <div class="kc">
       <div class="kl">{label}</div>
@@ -24,49 +24,40 @@ export function KpiStrip() {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <div class="kpi">
-        <KpiCard label="Total Potensi Pemborosan" value="..." sublabel="Menghitung agregat audit" />
-        <KpiCard label="Paket Prioritas Audit" value="..." sublabel="Memuat daftar area" />
-        <KpiCard label="Total Pagu Teraudit" value="..." sublabel="Menyiapkan peta kab/kota dan provinsi" />
-        <KpiCard label="Paket Terpetakan" value="..." sublabel="Memeriksa cakupan lokasi" />
+      <div class="kpi" id="kpi" aria-label="Bukti ringkas nasional">
+        <KpiCard label="Potensi Pemborosan Nasional" value="..." sublabel="Menghitung agregat audit" />
+        <KpiCard label="Paket Teraudit" value="..." sublabel="Memuat daftar area" />
+        <KpiCard label="Pagu" value="..." sublabel="Menyiapkan agregat anggaran" />
       </div>
     );
   }
 
   if (status === 'error' || !summary) {
     return (
-      <div class="kpi">
-        <KpiCard label="Total Potensi Pemborosan" value="-" sublabel="Backend belum siap" />
-        <KpiCard label="Paket Prioritas Audit" value="-" sublabel="Periksa ingest hasil analyze" />
-        <KpiCard label="Total Pagu Teraudit" value="-" sublabel={error ?? 'Ulangi db:reset bila perlu'} />
-        <KpiCard label="Paket Terpetakan" value="-" sublabel="Map belum dapat dibuat" />
+      <div class="kpi" id="kpi" aria-label="Bukti ringkas nasional">
+        <KpiCard label="Potensi Pemborosan Nasional" value="-" sublabel="Backend belum siap" />
+        <KpiCard label="Paket Teraudit" value="-" sublabel="Periksa ingest hasil analyze" />
+        <KpiCard label="Pagu" value="-" sublabel={error ?? 'Ulangi db:reset bila perlu'} />
       </div>
     );
   }
 
-  const mappedPackages = summary.totalPackages - summary.unmappedPackages;
-
   return (
-    <div class="kpi">
+    <div class="kpi" id="kpi" aria-label="Bukti ringkas nasional">
       <KpiCard
-        label="Total Potensi Pemborosan"
+        label="Potensi Pemborosan Nasional"
         value={`Rp ${formatCompactCurrency(summary.totalPotentialWaste)}`}
-        sublabel="Nilai nasional raw, tanpa duplikasi multi-lokasi"
+        sublabel={`${formatNumber(summary.totalPriorityPackages)} paket prioritas`}
       />
       <KpiCard
-        label="Paket Prioritas Audit"
-        value={formatNumber(summary.totalPriorityPackages)}
-        sublabel={`${formatNumber(summary.totalPackages)} paket teraudit`}
+        label="Paket Teraudit"
+        value={formatNumber(summary.totalPackages)}
+        sublabel={`${formatNumber(summary.unmappedPackages)} tidak terpetakan`}
       />
       <KpiCard
-        label="Total Pagu Teraudit"
+        label="Pagu"
         value={`Rp ${formatCompactCurrency(summary.totalBudget)}`}
-        sublabel="Akumulasi pagu dari seluruh artifact audit"
-      />
-      <KpiCard
-        label="Paket Terpetakan"
-        value={`${formatNumber(mappedPackages)} / ${formatNumber(summary.totalPackages)}`}
-        sublabel={`${formatNumber(summary.unmappedPackages)} unmapped | ${formatNumber(summary.multiLocationPackages)} multi-lokasi`}
+        sublabel="Akumulasi seluruh artifact"
       />
     </div>
   );

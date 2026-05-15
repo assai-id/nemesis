@@ -1,4 +1,6 @@
 import type { BootstrapResponse, PackagesResponse } from '../types/api';
+import type { Theme } from '../types/store';
+import { applyChoroplethPalette } from './theme';
 
 function getApiBase(): string {
   return (globalThis.DASHBOARD_API_BASE_URL ?? '/api').replace(/\/$/, '');
@@ -22,12 +24,16 @@ async function fetchJson<T>(path: string): Promise<T> {
   return payload as T;
 }
 
-export function normalizeDashboardData(payload: unknown): BootstrapResponse {
+export function normalizeDashboardData(payload: unknown, theme: Theme = 'light'): BootstrapResponse {
   const p = payload as Record<string, unknown>;
   if (!p || typeof p !== 'object') throw new Error('Bootstrap payload tidak valid.');
 
   const pv = (p.provinceView ?? {}) as Record<string, unknown>;
   const ol = (p.ownerLists ?? {}) as Record<string, unknown>;
+
+  const rawLegend = (p.legend as BootstrapResponse['legend']) ?? { zeroColor: '#243155', ranges: [] };
+  const rawProvinceLegend =
+    (pv.legend as BootstrapResponse['legend']) ?? { zeroColor: '#243155', ranges: [] };
 
   return {
     summary: (p.summary as BootstrapResponse['summary']) ?? {
@@ -38,11 +44,11 @@ export function normalizeDashboardData(payload: unknown): BootstrapResponse {
       unmappedPackages: 0,
       multiLocationPackages: 0,
     },
-    legend: (p.legend as BootstrapResponse['legend']) ?? { zeroColor: '#243155', ranges: [] },
+    legend: applyChoroplethPalette(rawLegend, theme),
     geo: (p.geo as BootstrapResponse['geo']) ?? { type: 'FeatureCollection', features: [] },
     regions: Array.isArray(p.regions) ? (p.regions as BootstrapResponse['regions']) : [],
     provinceView: {
-      legend: (pv.legend as BootstrapResponse['legend']) ?? { zeroColor: '#243155', ranges: [] },
+      legend: applyChoroplethPalette(rawProvinceLegend, theme),
       geo: (pv.geo as BootstrapResponse['geo']) ?? { type: 'FeatureCollection', features: [] },
       provinces: Array.isArray(pv.provinces)
         ? (pv.provinces as BootstrapResponse['provinceView']['provinces'])
@@ -52,6 +58,20 @@ export function normalizeDashboardData(payload: unknown): BootstrapResponse {
       central: Array.isArray(ol.central)
         ? (ol.central as BootstrapResponse['ownerLists']['central'])
         : [],
+    },
+  };
+}
+
+export function applyThemeToBootstrap(
+  data: BootstrapResponse,
+  theme: Theme,
+): BootstrapResponse {
+  return {
+    ...data,
+    legend: applyChoroplethPalette(data.legend, theme),
+    provinceView: {
+      ...data.provinceView,
+      legend: applyChoroplethPalette(data.provinceView.legend, theme),
     },
   };
 }

@@ -3,11 +3,11 @@ import { SidebarList } from './SidebarList';
 
 export function Sidebar() {
   return (
-    <div class="sb">
+    <aside class="sb">
       <SidebarHeader />
       <div class="sbc" id="sbc">
         <SidebarList />
       </div>
-    </div>
+    </aside>
   );
 }

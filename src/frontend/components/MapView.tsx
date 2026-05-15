@@ -2,7 +2,8 @@ import { useRef, useEffect } from 'preact/hooks';
 import { useDashboardStore } from '../hooks/useDashboardStore';
 import { dashboardStore } from '../store/dashboard.store';
 import { getLegendColor, formatCompactCurrency, formatNumber, escapeHtml } from '../lib/format';
-import type { Feature } from 'geojson';
+import { getThemeColors } from '../lib/theme';
+import type { Feature, FeatureCollection } from 'geojson';
 import type { FeatureStyle } from '../types/audit-map';
 import type { RegionRow, ProvinceRow } from '../types/api';
 
@@ -30,7 +31,7 @@ function computeVisibility(
 }
 
 function computeFeatureStyle(feature: Feature): FeatureStyle {
-  const { mapFilter, selectedAreaKey, regionsByKey, provincesByKey, data } =
+  const { mapFilter, selectedAreaKey, regionsByKey, provincesByKey, data, theme } =
     dashboardStore.getState();
   const isProvince = mapFilter === 'provinsi';
   const props = feature.properties as Record<string, unknown>;
@@ -45,9 +46,11 @@ function computeFeatureStyle(feature: Feature): FeatureStyle {
   const tab = dashboardStore.getState().tab;
   const visible = area ? computeVisibility(area, isProvince, tab, mapFilter) : false;
 
+  const themeColors = getThemeColors(theme);
   const selected = selectedAreaKey === areaKey;
   const strokeOpacity = (selected ? 1 : 0.2) * (visible ? 0.85 : 0.2);
-  const fillColor = area && legend ? getLegendColor(area.totalPotentialWaste, legend) : '#243155';
+  const fillColor =
+    area && legend ? getLegendColor(area.totalPotentialWaste, legend) : themeColors.zeroColor;
 
   let fillOpacity: number;
   if (selected) {
@@ -59,7 +62,7 @@ function computeFeatureStyle(feature: Feature): FeatureStyle {
   return {
     fillColor,
     fillOpacity,
-    strokeColor: selected ? '#f0d8a8' : '#b5a882',
+    strokeColor: selected ? themeColors.strokeSelected : themeColors.strokeDefault,
     strokeWidth: selected ? 2.1 : 0.8,
     strokeOpacity,
   };
@@ -115,16 +118,24 @@ function computePopupHtml(areaKey: string): string | null {
 
 export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastGeoRef = useRef<FeatureCollection | null>(null);
   const data = useDashboardStore((s) => s.data);
   const mapFilter = useDashboardStore((s) => s.mapFilter);
   const selectedAreaKey = useDashboardStore((s) => s.selectedAreaKey);
+  const tab = useDashboardStore((s) => s.tab);
+  const theme = useDashboardStore((s) => s.theme);
   const isProvince = mapFilter === 'provinsi';
 
-  // Full render when data arrives or province/region view switches
+  // Full render hanya saat geo reference benar-benar baru (data fetch atau
+  // province/region switch). Toggle theme menghasilkan `data` reference baru
+  // tapi `data.geo` tetap stabil — tanpa guard ini, fitBounds beranimasi
+  // ulang dan setData 514 features dipanggil tanpa perlu.
   useEffect(() => {
     if (!containerRef.current || !data || !globalThis.AuditMap) return;
     const geo = isProvince ? data.provinceView.geo : data.geo;
     if (!geo.features.length) return;
+    if (lastGeoRef.current === geo) return;
+    lastGeoRef.current = geo;
 
     globalThis.AuditMap.render(
       containerRef.current,
@@ -133,7 +144,7 @@ export function MapView() {
         getFeatureStyle: computeFeatureStyle,
         getPopupHtml: computePopupHtml,
         onAreaClick: (areaKey) =>
-          dashboardStore.getState().openAreaModal(areaKey, isProvince ? 'province' : 'region'),
+          dashboardStore.getState().openAreaCaseFile(areaKey, isProvince ? 'province' : 'region'),
         fitBounds: true,
         isProvinceView: isProvince,
       },
@@ -142,13 +153,13 @@ export function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isProvince]);
 
-  // Refresh styles when selection or filter changes (without re-fitting bounds)
+  // Refresh styles when selection, filter, tab, or theme changes (without re-fitting bounds)
   useEffect(() => {
     if (!data || !globalThis.AuditMap) return;
     const geo = isProvince ? data.provinceView.geo : data.geo;
     globalThis.AuditMap.refresh(geo, computeFeatureStyle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAreaKey, mapFilter]);
+  }, [selectedAreaKey, mapFilter, tab, theme]);
 
-  return <div id="map" ref={containerRef} />;
+  return <div id="map" ref={containerRef} role="application" aria-label="Peta choropleth audit pengadaan" />;
 }

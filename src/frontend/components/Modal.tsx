@@ -1,41 +1,20 @@
-import { useEffect } from 'preact/hooks';
 import { useDashboardStore } from '../hooks/useDashboardStore';
-import { dashboardStore } from '../store/dashboard.store';
+import { Breadcrumb } from './Breadcrumb';
 import { ModalBody } from './ModalBody';
 
 export function Modal() {
-  const isOpen = useDashboardStore((s) => s.modal.isOpen);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') dashboardStore.getState().closeModal();
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  const caseTitle = useDashboardStore((s) => s.breadcrumbLabel);
 
   return (
-    <div class={`modal-overlay${isOpen ? ' open' : ''}`} id="rupModal">
-      <button
-        type="button"
-        style={{ position: 'absolute', inset: 0, background: 'transparent', border: 'none', cursor: 'default' }}
-        onClick={() => dashboardStore.getState().closeModal()}
-        aria-label="Tutup modal"
-      />
-      <div class="modal">
+    <article class="casefile view-casefile" aria-label="Berkas wilayah">
+      <Breadcrumb />
+      <h1 class="visually-hidden" id="modalTop">{caseTitle}</h1>
+      <div class="casefile-body" id="modalBody">
         <ModalBody />
-        <div class="modal-footer">
-          Map memakai agregasi penuh untuk paket multi-lokasi &middot; KPI nasional tidak
-          menduplikasi paket multi-lokasi
-        </div>
       </div>
-    </div>
+      <footer class="casefile-foot">
+        Peta wilayah memakai agregasi penuh untuk paket multi-lokasi · KPI nasional tidak menduplikasi paket multi-lokasi.
+      </footer>
+    </article>
   );
 }

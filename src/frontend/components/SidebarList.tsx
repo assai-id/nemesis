@@ -1,5 +1,4 @@
 import { useDashboardStore } from '../hooks/useDashboardStore';
-import { dashboardStore } from '../store/dashboard.store';
 import { useFilteredSidebarAreas, useFilteredSidebarOwners } from '../hooks/useFilteredSidebarItems';
 import { AreaCard } from './AreaCard';
 import { OwnerCard } from './OwnerCard';
@@ -48,8 +47,6 @@ function buildListContent(
 export function SidebarList() {
   const data = useDashboardStore((s) => s.data);
   const mapFilter = useDashboardStore((s) => s.mapFilter);
-  const search = useDashboardStore((s) => s.search);
-  const sortBy = useDashboardStore((s) => s.sortBy);
   const bootstrapStatus = useDashboardStore((s) => s.bootstrapStatus);
   const isCentralMode = mapFilter === 'central';
 
@@ -71,46 +68,5 @@ export function SidebarList() {
   const legend = getActiveLegend(data, mapFilter);
   const isProvince = mapFilter === 'provinsi';
 
-  let searchPlaceholder: string;
-  if (isCentralMode) {
-    searchPlaceholder = 'Cari kementerian/lembaga...';
-  } else {
-    searchPlaceholder = isProvince ? 'Cari provinsi...' : 'Cari kabupaten/kota...';
-  }
-
-  const listContent = buildListContent(isCentralMode, isProvince, ownerItems, areaItems, legend, mapFilter);
-
-  return (
-    <>
-      <div class="sw">
-        <span class="si">&#128269;</span>
-        <input
-          id="sidebarSearch"
-          type="text"
-          placeholder={searchPlaceholder}
-          value={search}
-          onInput={(e) => dashboardStore.getState().setSearch((e.target as HTMLInputElement).value)}
-        />
-      </div>
-      <div class="sort-bar">
-        <label htmlFor="sortSelect">Urutkan</label>
-        <select
-          id="sortSelect"
-          value={sortBy}
-          onChange={(e) =>
-            dashboardStore.getState().setSortBy(
-              (e.target as HTMLSelectElement).value as import('../types/store').SortBy
-            )
-          }
-        >
-          <option value="waste">Potensi Pemborosan</option>
-          <option value="priority">Paket Prioritas</option>
-          <option value="packages">Total Paket</option>
-          <option value="budget">Total Pagu</option>
-        </select>
-      </div>
-
-      {listContent}
-    </>
-  );
+  return <>{buildListContent(isCentralMode, isProvince, ownerItems, areaItems, legend, mapFilter)}</>;
 }

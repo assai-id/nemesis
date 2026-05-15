@@ -24,6 +24,7 @@ export interface AuditMapInterface {
     onReady?: () => void
   ): void;
   refresh(geo: FeatureCollection, getFeatureStyle: (f: Feature) => FeatureStyle): void;
+  setTheme(): void;
   closePopup(): void;
 }
 

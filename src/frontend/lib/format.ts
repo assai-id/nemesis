@@ -65,6 +65,13 @@ export function severityLabel(severity: string): string {
   return 'Low';
 }
 
+export function severityClass(severity: string): string {
+  if (severity === 'absurd') return 'sev-absurd';
+  if (severity === 'high') return 'sev-high';
+  if (severity === 'med') return 'sev-med';
+  return 'sev-low';
+}
+
 export function normalizeSourceId(sourceId: string | number | null | undefined): string | null {
   if (sourceId === null || sourceId === undefined) return null;
   const normalized = String(sourceId).trim();

@@ -2,10 +2,23 @@ import { useDashboardStore } from '../hooks/useDashboardStore';
 import { dashboardStore } from '../store/dashboard.store';
 import { formatCompactCurrency } from '../lib/format';
 
+// Composite a fill swatch dengan opacity 0.52 di atas warna basemap yang
+// disimulasikan, supaya swatch tampak persis seperti area peta yang
+// di-render dengan `fill-opacity: 0.52` di MapLibre.
+//
+// Basemap reference colors (dominant land tint setelah anti-alias):
+//   - dark-matter-nolabels  → #0d1424 (deep navy/black)
+//   - positron-nolabels     → #fafaf6 (near-white cream)
+function swatchBg(color: string, theme: 'light' | 'dark'): string {
+  const base = theme === 'dark' ? '#0d1424' : '#fafaf6';
+  return `color-mix(in srgb, ${color} 52%, ${base})`;
+}
+
 export function MapLegend() {
   const isLegendHidden = useDashboardStore((s) => s.isLegendHidden);
   const mapFilter = useDashboardStore((s) => s.mapFilter);
   const data = useDashboardStore((s) => s.data);
+  const theme = useDashboardStore((s) => s.theme);
 
   let legend = null;
   if (data) {
@@ -16,16 +29,15 @@ export function MapLegend() {
 
   if (isLegendHidden) {
     return (
-      <div class="mlb" id="legend" style={{ padding: '6px 10px' }}>
-        <button
-          type="button"
-          class="lt"
-          style={{ margin: 0, cursor: 'pointer', color: 'var(--t2)', fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', background: 'none', border: 'none', padding: 0 }}
-          onClick={() => dashboardStore.getState().toggleLegend()}
-        >
-          🗒 Tampilkan Legenda
-        </button>
-      </div>
+      <button
+        type="button"
+        class="map-toggle map-toggle-legend"
+        id="legend"
+        aria-label="Tampilkan legenda"
+        onClick={() => dashboardStore.getState().toggleLegend()}
+      >
+        <span aria-hidden="true">▤</span> Tampilkan legenda
+      </button>
     );
   }
 
@@ -56,12 +68,12 @@ export function MapLegend() {
       {legend && (
         <>
           <div class="li">
-            <div class="lsw" style={{ background: legend.zeroColor || '#243155' }}></div>
+            <div class="lsw" style={{ background: swatchBg(legend.zeroColor || '#4a5982', theme) }}></div>
             {zeroLabel}
           </div>
           {legend.ranges.map((range) => (
             <div class="li" key={range.key}>
-              <div class="lsw" style={{ background: range.color }}></div>
+              <div class="lsw" style={{ background: swatchBg(range.color, theme) }}></div>
               Rp {formatCompactCurrency(range.min)} &ndash; Rp {formatCompactCurrency(range.max)}
             </div>
           ))}
