@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { dashboardStore } from '../store/dashboard.store';
+import { useDashboardStore } from '../hooks/useDashboardStore';
 import { fetchBootstrap, normalizeDashboardData } from '../lib/api';
 import { Header } from './Header';
 import { KpiStrip } from './KpiStrip';
@@ -8,6 +9,8 @@ import { Sidebar } from './Sidebar';
 import { Modal } from './Modal';
 
 export function App() {
+  const isMapVisible = useDashboardStore((s) => s.isMapVisible);
+
   useEffect(() => {
     const store = dashboardStore.getState();
     store.setBootstrapLoading();
@@ -22,7 +25,7 @@ export function App() {
     <div id="preact-wrapper">
       <Header />
       <KpiStrip />
-      <div class="ml">
+      <div class="ml" style={{ gridTemplateColumns: isMapVisible ? '' : '1fr' }}>
         <MapContainer />
         <Sidebar />
       </div>
