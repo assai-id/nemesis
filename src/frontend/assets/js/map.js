@@ -15,6 +15,10 @@ window['AuditMap'] = (() => {
   let _onAreaClick = null;
   let _getPopupHtml = null;
 
+  let pinned = false;
+  let pinnedAreaKey = null;
+  let pinnedLngLat = null;
+
   function getFeatureAreaKey(props) {
     return _isProvinceView ? props.provinceKey : props.regionKey;
   }
@@ -103,7 +107,43 @@ window['AuditMap'] = (() => {
       }
       hoveredId = null;
     }
+  }
+
+  function showPopupAt(lngLat, html) {
+    if (!popup) {
+      popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        maxWidth: '320px',
+        className: 'audit-popup',
+        offset: 12,
+      });
+    }
+    popup.setLngLat(lngLat).setHTML(html).addTo(map);
+  }
+
+  function pinPopup(areaKey, lngLat) {
+    pinned = true;
+    pinnedAreaKey = areaKey;
+    pinnedLngLat = lngLat;
+    if (_getPopupHtml) {
+      const html = _getPopupHtml(areaKey);
+      if (html) showPopupAt(lngLat, html);
+    }
+  }
+
+  function unpinPopup() {
+    pinned = false;
+    pinnedAreaKey = null;
+    pinnedLngLat = null;
     closePopup();
+  }
+
+  function restorePinnedPopup() {
+    if (pinned && pinnedAreaKey && _getPopupHtml) {
+      const html = _getPopupHtml(pinnedAreaKey);
+      if (html) showPopupAt(pinnedLngLat, html);
+    }
   }
 
   function addLayers() {
@@ -176,30 +216,23 @@ window['AuditMap'] = (() => {
 
       if (_getPopupHtml && feature.properties) {
         const areaKey = getFeatureAreaKey(feature.properties);
+        unpinPopup();
         const html = _getPopupHtml(areaKey);
-        if (html) {
-          if (!popup) {
-            popup = new maplibregl.Popup({
-              closeButton: false,
-              closeOnClick: false,
-              maxWidth: '320px',
-              className: 'audit-popup',
-              offset: 12,
-            });
-          }
-          popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
-        }
+        if (html) showPopupAt(e.lngLat, html);
       }
     });
 
     map.on('mouseleave', FILL_LAYER, () => {
       map.getCanvas().style.cursor = '';
       clearHover();
+      if (!pinned) closePopup();
     });
 
     map.on('click', FILL_LAYER, (e) => {
       if (!e.features.length) return;
-      const areaKey = getFeatureAreaKey(e.features[0].properties);
+      const feature = e.features[0];
+      const areaKey = getFeatureAreaKey(feature.properties);
+      pinPopup(areaKey, e.lngLat);
       if (_onAreaClick) _onAreaClick(areaKey);
     });
   }
@@ -217,6 +250,7 @@ window['AuditMap'] = (() => {
       }
 
       clearHover();
+      closePopup();
 
       const styledGeo = buildStyledGeo(geo, options.getFeatureStyle);
       map.getSource(SOURCE).setData(styledGeo);
@@ -244,8 +278,10 @@ window['AuditMap'] = (() => {
   function refresh(geo, getFeatureStyle) {
     if (!map?.getSource(SOURCE)) return;
     clearHover();
+    closePopup();
     map.getSource(SOURCE).setData(buildStyledGeo(geo, getFeatureStyle));
+    restorePinnedPopup();
   }
 
-  return { render, refresh, closePopup: clearHover };
+  return { render, refresh, closePopup, unpinPopup };
 })();

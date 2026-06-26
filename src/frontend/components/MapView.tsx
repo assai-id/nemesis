@@ -115,9 +115,11 @@ function computePopupHtml(areaKey: string): string | null {
 
 export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevModalOpenRef = useRef(false);
   const data = useDashboardStore((s) => s.data);
   const mapFilter = useDashboardStore((s) => s.mapFilter);
   const selectedAreaKey = useDashboardStore((s) => s.selectedAreaKey);
+  const isModalOpen = useDashboardStore((s) => s.modal.isOpen);
   const isProvince = mapFilter === 'provinsi';
 
   // Full render when data arrives or province/region view switches
@@ -149,6 +151,14 @@ export function MapView() {
     globalThis.AuditMap.refresh(geo, computeFeatureStyle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAreaKey, mapFilter]);
+
+  // Unpin popup when modal closes (option A behavior)
+  useEffect(() => {
+    if (prevModalOpenRef.current && !isModalOpen && globalThis.AuditMap) {
+      globalThis.AuditMap.unpinPopup?.();
+    }
+    prevModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
 
   return <div id="map" ref={containerRef} />;
 }

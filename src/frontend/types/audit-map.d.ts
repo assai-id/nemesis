@@ -25,6 +25,7 @@ export interface AuditMapInterface {
   ): void;
   refresh(geo: FeatureCollection, getFeatureStyle: (f: Feature) => FeatureStyle): void;
   closePopup(): void;
+  unpinPopup(): void;
 }
 
 declare global {
